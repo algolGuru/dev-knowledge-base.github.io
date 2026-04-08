@@ -91,6 +91,14 @@ a:hover { color: #7ee8df; text-decoration: underline; }
   height: 100%; background: var(--accent-cyan); border-radius: 2px;
   transition: width 0.4s cubic-bezier(0.16,1,0.3,1);
 }
+.sync-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--text-muted); transition: background 0.3s, box-shadow 0.3s; flex-shrink: 0;
+}
+.sync-dot.syncing { background: var(--accent-amber); box-shadow: 0 0 8px var(--accent-amber); animation: pulse 1s ease-in-out infinite; }
+.sync-dot.synced  { background: var(--accent-cyan);  box-shadow: 0 0 6px var(--accent-cyan); }
+.sync-dot.error   { background: #f43f5e; }
+.sync-label { font-size: 11px; color: var(--text-muted); min-width: 40px; }
 
 .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
 
@@ -349,6 +357,8 @@ a:hover { color: #7ee8df; text-decoration: underline; }
     <div class="progress-bar">
       <span id="progress-text">0 / 64</span>
       <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      <div class="sync-dot" id="sync-dot" title="Статус синхронизации"></div>
+      <span class="sync-label" id="sync-label"></span>
     </div>
   </div>
 </header>
@@ -493,10 +503,73 @@ const DATA = [
   }
 ];
 
+// ── Config ────────────────────────────────────────────────────────────────────
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbypmFuhrakRHWqfi6g4NZW7YOgHcrDdf4atgP1XTEfVDL-Eq42Xnjy3dMCu6-gmayAirg/exec';
 const STORAGE_KEY = 'devkb_learned';
+
+// ── Local state ───────────────────────────────────────────────────────────────
 let learned = {};
 try { learned = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e) {}
 function saveLearned() { localStorage.setItem(STORAGE_KEY, JSON.stringify(learned)); }
+
+// ── Sync UI ───────────────────────────────────────────────────────────────────
+function setSyncState(state) {
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  if (!dot || !lbl) return;
+  dot.className = 'sync-dot';
+  const cls = { syncing: 'syncing', synced: 'synced', error: 'error', offline: 'error' };
+  const txt = { syncing: 'sync…', synced: '', error: 'offline', offline: 'offline' };
+  if (cls[state]) dot.classList.add(cls[state]);
+  lbl.textContent = txt[state] ?? '';
+}
+
+// ── Sheets API ────────────────────────────────────────────────────────────────
+async function fetchFromSheets() {
+  try {
+    const r = await fetch(`${SHEETS_URL}?action=getAll`, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return null;
+    const d = await r.json();
+    return (d && typeof d === 'object' && !d.error) ? d : null;
+  } catch { return null; }
+}
+
+async function pushToSheets(key, value) {
+  try {
+    await fetch(`${SHEETS_URL}?action=set&key=${encodeURIComponent(key)}&value=${value}`,
+      { signal: AbortSignal.timeout(8000) });
+  } catch { /* localStorage already saved — silent fail is fine */ }
+}
+
+// Debounce rapid toggles into a batch of parallel pushes
+let _syncTimer = null;
+const _pendingKeys = new Set();
+function schedulePush(key) {
+  _pendingKeys.add(key);
+  clearTimeout(_syncTimer);
+  setSyncState('syncing');
+  _syncTimer = setTimeout(async () => {
+    const keys = [..._pendingKeys]; _pendingKeys.clear();
+    await Promise.allSettled(keys.map(k => pushToSheets(k, learned[k] ? 'true' : 'false')));
+    setSyncState('synced');
+    setTimeout(() => setSyncState('idle'), 2000);
+  }, 600);
+}
+
+// ── Initial sync (local-first, then remote merge) ─────────────────────────────
+async function initSync() {
+  setSyncState('syncing');
+  const remote = await fetchFromSheets();
+  if (!remote) { setSyncState(navigator.onLine ? 'error' : 'offline'); return; }
+  // Union merge: once learned on any device = always learned
+  let changed = false;
+  Object.keys(remote).forEach(k => {
+    if (remote[k] === true && !learned[k]) { learned[k] = true; changed = true; }
+  });
+  if (changed) { saveLearned(); buildSections(); updateProgress(); buildStats(); }
+  setSyncState('synced');
+  setTimeout(() => setSyncState('idle'), 2000);
+}
 
 let activeFilter = 'all';
 let searchQuery = '';
@@ -613,6 +686,7 @@ function toggleLearned(id) {
   if (learned[id]) delete learned[id];
   else learned[id] = true;
   saveLearned();
+  schedulePush(id); // async push to Google Sheets
   const el = document.getElementById('card-' + id);
   if (el) el.classList.toggle('learned');
   updateProgress();
@@ -641,6 +715,7 @@ buildFilters();
 buildStats();
 buildSections();
 updateProgress();
+initSync(); // fires after first paint
 </script>
 
 </body>
