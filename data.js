@@ -1,17 +1,66 @@
-const article = ({ what, problem, code, important = [] }) => {
+const article = ({
+  what,
+  problem,
+  how = "",
+  diagram = "",
+  code = "",
+  codeLang = "csharp",
+  codeTitle = "Минимальный пример",
+  important = []
+}) => {
   const parts = [
     "## Что это",
-    what.trim(),
-    "",
-    "## Какую проблему решает",
-    problem.trim(),
-    "",
-    "## Пример реализации",
-    "",
-    "```csharp",
-    code.trim(),
-    "```"
+    what.trim()
   ];
+
+  if (problem?.trim()) {
+    parts.push("", "## Какую проблему решает", problem.trim());
+  }
+
+  if (diagram?.trim()) {
+    parts.push("", "## Схема", "", "```text", diagram.trim(), "```");
+  }
+
+  if (how?.trim()) {
+    parts.push("", "## Как это обычно выглядит в проекте", how.trim());
+  }
+
+  if (code?.trim()) {
+    parts.push(
+      "",
+      `## ${codeTitle}`,
+      "Ниже упрощенный пример: он показывает идею без лишней инфраструктуры.",
+      "",
+      `\`\`\`${codeLang}`,
+      code.trim(),
+      "```"
+    );
+  }
+
+  if (important.length > 0) {
+    parts.push("", "## Что запомнить", ...important.map(item => `- ${item}`));
+  }
+
+  return parts.join("\n");
+};
+
+const theory = ({ what, problem = "", diagram = "", details = "", important = [] }) => {
+  const parts = [
+    "## Что это",
+    what.trim()
+  ];
+
+  if (problem?.trim()) {
+    parts.push("", "## Какую проблему решает", problem.trim());
+  }
+
+  if (diagram?.trim()) {
+    parts.push("", "## Схема", "", "```text", diagram.trim(), "```");
+  }
+
+  if (details?.trim()) {
+    parts.push("", "## Как это читать", details.trim());
+  }
 
   if (important.length > 0) {
     parts.push("", "## Что запомнить", ...important.map(item => `- ${item}`));
@@ -27,36 +76,70 @@ const DATA = [
   {
     id: "arch", title: "Архитектура монолитных приложений", icon: "&#9608;", color: "cyan",
     rows: [
-      topic("Слои (Layers)", `Разделение приложения на слои: **Presentation**, **Application**, **Domain**, **Infrastructure**.
+      topic("Слои (Layers)", theory({
+        what: "Слои делят приложение по ответственности: кто принимает вход, кто координирует сценарий, где живут бизнес-правила и кто работает с внешним миром. Чаще всего речь про `Presentation`, `Application`, `Domain`, `Infrastructure`.",
+        problem: "Так код не превращается в смесь HTTP, SQL и бизнес-логики в одном месте. Чем яснее границы, тем легче менять UI, БД и интеграции без переписывания ядра.",
+        diagram: `
+Presentation / API / UI
+          |
+          v
+Application (use cases)
+          |
+          v
+Domain (entities, value objects, rules)
+          ^
+          |
+Infrastructure (DB, SMTP, broker, files)
+        `,
+        details: `Обычно это читается так:
 
-Каждый слой имеет чёткую ответственность. Зависимости направлены внутрь по **Dependency Rule**.
+- **Presentation** принимает HTTP/UI/CLI-вход и переводит его в команду или запрос.
+- **Application** собирает use case: вызывает репозитории, доменные методы, транзакцию, интеграции.
+- **Domain** хранит инварианты и язык предметной области: \`Order\`, \`Money\`, \`Email\`, правила подтверждения, расчёта и т.д.
+- **Infrastructure** реализует доступ к БД, брокерам, файловой системе, внешним API.
 
-В терминах **Clean Architecture**:
+Если смотреть через призму Clean Architecture, то:
 
-- **Entities** — ядро бизнеса.
-  Тут лежат сущности и правила предметной области: например \`Order\`, \`Account\`, \`Money\`.
-  Они не знают про HTTP, БД, ORM, UI.
-- **Use Cases** — сценарии приложения.
-  Это действия типа: \`CreateOrder\`, \`TransferMoney\`, \`LoginUser\`.
-  Они говорят, что система делает, и координируют entities.
-- **Interface Adapters** — слой-переводчик между внутренней логикой и внешним миром.
-  Внутри обычно:
-  - **Controllers** — принимают входящий запрос;
-  - **Presenters** — подготавливают результат для показа;
-  - **Views** — отображают результат;
-  - **Gateways / Repositories / API adapters** — ходят в БД и внешние сервисы.
-- **Frameworks & Drivers** — внешняя инфраструктура:
-  web framework, БД, ORM, роутинг, конфиг, драйверы, SDK.
+- **Entities** — самое внутреннее ядро бизнеса;
+- **Use Cases** — прикладные сценарии;
+- **Interface Adapters** — controllers, presenters, gateways;
+- **Frameworks & Drivers** — ASP.NET Core, EF Core, SMTP, Kafka, файловая система.
 
-Что такое **Presenter**:
+**Presenter** нужен там, где результат use case надо преобразовать в удобную форму для UI или API. Он не принимает бизнес-решения, а только переводит внутренний результат в DTO, ViewModel или JSON.`,
+        important: [
+          "Главное не названия папок, а чёткое разделение ответственности.",
+          "Зависимости должны смотреть внутрь: домен не знает про HTTP, EF Core и внешние SDK."
+        ]
+      }), [link("The Clean Architecture — Uncle Bob", "https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html")]),
+      topic("Чистая архитектура (Clean Architecture)", theory({
+        what: "Clean Architecture — это подход, в котором бизнес-логика ставится в центр, а UI, база данных и фреймворки считаются внешними деталями. Идея не в круговых диаграммах ради красоты, а в том, чтобы важные правила приложения жили отдельно от технической обвязки.",
+        problem: "Без этого зависимости быстро начинают течь наружу-внутрь хаотично: контроллеры принимают бизнес-решения, EF Core диктует форму домена, а use case становится привязан к конкретному web/framework стеку.",
+        diagram: `
+Frameworks & Drivers
+Interface Adapters
+Use Cases
+Entities
 
-- это не бизнес-логика;
-- он берет результат use case и превращает его в удобный формат для UI/API;
-- например: из внутреннего Response делает JSON, ViewModel или DTO для экрана.`, [link("The Clean Architecture — Uncle Bob", "https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html")]),
-      topic("Чистая архитектура (Clean Architecture)", "Архитектурный паттерн Роберта Мартина: независимость от фреймворков, UI, БД. Ядро — бизнес-логика, внешние слои — инфраструктура. Ключевой принцип — Dependency Inversion.", [link("Clean Architecture — оригинал", "https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html")]),
+Зависимости кода направлены только внутрь.
+Внешние слои могут зависеть от внутренних,
+внутренние от внешних — нет.
+        `,
+        details: `На практике из этой идеи обычно следуют три простых правила:
+
+- бизнес-правила не зависят от web/framework;
+- доступ к БД и интеграции прячется за интерфейсами;
+- use case можно вызывать не только из HTTP, но и из джобы, консоли или теста.
+
+Dependency Inversion здесь означает, что внутренний слой формулирует контракт, а внешний слой его реализует. Например, \`IOrderRepository\` может жить рядом с use case или доменом, а реализация на EF Core — уже в инфраструктуре.`,
+        important: [
+          "Clean Architecture не требует буквального копирования всех кругов, она требует управляемых зависимостей.",
+          "Если завтра поменяется UI, ORM или способ доставки сообщений, ядро приложения не должно переписываться."
+        ]
+      }), [link("Clean Architecture — оригинал", "https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html")]),
       topic("Разделение на компоненты и модули", article({
         what: "Модули группируют код по фиче или bounded context, чтобы внутри лежали свои контроллеры, application-слой, домен и инфраструктура.",
         problem: "Это уменьшает связанность между частями монолита и позволяет развивать фичи почти как отдельные мини-приложения.",
+        how: "Обычно хороший модуль выглядит как вертикальный срез: внутри рядом лежат входные точки, use cases, доменная модель и инфраструктурные реализации именно этой фичи. Важно, чтобы соседний модуль не ходил в чужие внутренности напрямую, а работал через публичный контракт или application API.",
         code: `
 public static class BillingModule
 {
@@ -67,7 +150,11 @@ public static class BillingModule
         return services;
     }
 }
-        `
+        `,
+        important: [
+          "Модуль удобнее строить вокруг бизнес-возможности, а не вокруг технического слоя.",
+          "Если для изменения одной фичи приходится трогать много несвязанных папок, границы модулей выбраны плохо."
+        ]
       })),
       topic("Реализация Outbox", `## Зачем вообще Outbox
 
@@ -574,6 +661,7 @@ AggregateRoot -> DomainEvents -> UnitOfWork.CommitAsync() -> OutboxMessages
       topic("Domain layer — что пишем, структура", article({
         what: "В `Domain` лежат агрегаты, entities, value objects, domain services и domain events. Здесь нет контроллеров, SQL и вызовов брокеров.",
         problem: "Это держит бизнес-правила в одном месте и не даёт инфраструктуре определять поведение модели.",
+        how: "Если правило влияет на корректность предметной модели, его место почти всегда в домене. Например, `Email` должен валидировать себя сам, а `Customer` должен менять email через доменный метод, а не через прямое присваивание из контроллера.",
         code: `
 public sealed record Email
 {
@@ -598,11 +686,16 @@ public sealed class Customer
         Email = email;
     }
 }
-        `
+        `,
+        important: [
+          "Домен должен говорить на языке бизнеса, а не на языке HTTP, SQL и ORM.",
+          "Чем больше инвариантов живёт в доменной модели, тем меньше дублирования по контроллерам и handler'ам."
+        ]
       })),
       topic("Application layer — что пишем, структура", article({
         what: "Application слой описывает use cases: принимает команду, загружает агрегат, вызывает доменный метод и сохраняет изменения.",
         problem: "Так контроллеры, джобы и интеграции не дублируют оркестрацию одного и того же сценария.",
+        how: "Обычно поток такой: endpoint или job создаёт команду, handler поднимает нужные данные, вызывает доменную модель и фиксирует изменения. Application слой координирует сценарий, но не подменяет собой доменные правила.",
         code: `
 public sealed record CancelOrderCommand(Guid OrderId);
 
@@ -618,7 +711,11 @@ public sealed class CancelOrderHandler
         await _unitOfWork.SaveChangesAsync(ct);
     }
 }
-        `
+        `,
+        important: [
+          "Application слой отвечает за сценарий, а не за хранение бизнес-правил.",
+          "Один и тот же use case должен одинаково работать из API, фоновой задачи и теста."
+        ]
       })),
       topic("Изучение DDD-проекта ТЛ", article({
         what: "Эта тема про разбор реального DDD-проекта: смотреть на границы модулей, направление зависимостей, расположение use cases и правила внутри агрегатов.",
@@ -738,6 +835,7 @@ public sealed class CheckoutService
       topic("Aggregate", article({
         what: "Aggregate — это группа связанных объектов с одной точкой входа через aggregate root. Только root разрешает менять внутреннее состояние.",
         problem: "Он удерживает инварианты внутри границы модели и не даёт внешнему коду менять дочерние сущности напрямую.",
+        how: "Практически это означает, что внешний код должен просить `Order` добавить строку, подтвердить заказ или отменить его, а не ковырять список `_lines` напрямую. Тогда правила вроде `quantity > 0` или `не больше 10 строк` живут в одном месте.",
         code: `
 public sealed class Order
 {
@@ -756,7 +854,11 @@ public sealed class Order
         _lines.Add(new OrderLine(productId, quantity));
     }
 }
-        `
+        `,
+        important: [
+          "Граница агрегата определяется инвариантами, а не количеством классов.",
+          "Если дочерние сущности можно свободно менять снаружи, агрегат перестаёт защищать модель."
+        ]
       })),
       topic("Entity", article({
         what: "Entity — это объект с идентичностью. Его равенство определяется не набором полей, а стабильным `Id`.",
@@ -797,6 +899,7 @@ public sealed record Money(decimal Amount, string Currency)
       topic("Repository", article({
         what: "Repository даёт приложению доступ к агрегатам через доменную абстракцию, а не через детали хранения.",
         problem: "Это позволяет менять способ хранения, не переписывая use cases и доменную модель.",
+        how: "Снаружи use case видит операции уровня модели: `GetByIdAsync`, `AddAsync`, `ExistsAsync`. Всё, что касается `Include`, SQL, индексов и materialization, прячется в инфраструктурной реализации репозитория.",
         code: `
 public interface IOrderRepository
 {
@@ -810,7 +913,11 @@ public sealed class OrderRepository : IOrderRepository
     public Task<Order?> GetByIdAsync(Guid id, CancellationToken ct) =>
         _db.Orders.SingleOrDefaultAsync(x => x.Id == id, ct);
 }
-        `
+        `,
+        important: [
+          "Repository нужен для работы с агрегатами, а не как универсальная обёртка над каждой таблицей.",
+          "Чем сильнее наружу течёт EF Core-специфика, тем слабее реальная абстракция репозитория."
+        ]
       })),
       topic("Domain Service", article({
         what: "Domain Service содержит бизнес-логику, которая не принадлежит одной конкретной entity или value object.",
@@ -849,6 +956,7 @@ public sealed class ConfirmOrderHandler
       topic("Domain Event и реализация", article({
         what: "Domain Event фиксирует важный факт в домене: заказ создан, оплата подтверждена, лимит превышен. Сам event ничего не делает, а только сообщает о случившемся.",
         problem: "Это ослабляет связанность между частями системы и позволяет реагировать на доменные изменения независимо.",
+        how: "Сначала агрегат поднимает событие как факт, а потом обработчики уже решают, что с этим делать: отправить письмо, обновить read model, запустить интеграцию. Особенно полезно это становится вместе с outbox, когда событие нужно надёжно доставить наружу.",
         code: `
 public sealed record OrderPaid(Guid OrderId, decimal Amount);
 
@@ -864,7 +972,11 @@ public sealed class SendReceiptOnOrderPaid : INotificationHandler<OrderPaid>
     public Task Handle(OrderPaid notification, CancellationToken ct) =>
         _emailSender.SendAsync("customer@demo.local", "Order paid", ct);
 }
-        `
+        `,
+        important: [
+          "Domain event описывает случившийся факт, а не команду на выполнение действия.",
+          "Чем меньше отправитель знает о подписчиках, тем проще расширять систему без каскада изменений."
+        ]
       })),
       topic("Layers (в контексте DDD)", article({
         what: "В DDD слои обычно читаются так: `Domain` формулирует правила, `Application` собирает use cases, `Infrastructure` реализует интерфейсы, `Presentation` принимает вход.",
@@ -916,6 +1028,7 @@ public sealed class ReserveInventoryOnOrderConfirmed : INotificationHandler<Orde
       topic("Миграции", article({
         what: "Миграции описывают эволюцию схемы БД как код и позволяют синхронно развивать модель и структуру таблиц.",
         problem: "Они убирают ручное редактирование схемы на серверах и дают воспроизводимый способ обновлять БД между окружениями.",
+        how: "Обычный поток такой: поменяли модель или конфигурацию EF Core, сгенерировали миграцию, посмотрели получившийся код и SQL, после чего применили её на окружении. То есть миграция — это не магия EF, а версия схемы, которую можно ревьюить как обычный код.",
         code: `
 public partial class AddOrderStatus : Migration
 {
@@ -929,7 +1042,11 @@ public partial class AddOrderStatus : Migration
             defaultValue: "Draft");
     }
 }
-        `
+        `,
+        important: [
+          "Миграции должны быть воспроизводимыми и понятными без ручных действий на сервере.",
+          "Полезно смотреть не только на C#-код миграции, но и на SQL, который она реально создаёт."
+        ]
       }), [link("docs — миграции", "https://learn.microsoft.com/ru-ru/ef/core/managing-schemas/migrations/")]),
       topic("Миграции как сырой SQL", article({
         what: "Сырой SQL в миграции нужен там, где Fluent API не умеет выразить конкретное DDL или сложное преобразование данных.",
@@ -1063,6 +1180,7 @@ catch (DbUpdateConcurrencyException)
       topic("Tracking vs No-Tracking", article({
         what: "С tracking EF Core следит за изменениями сущностей, а `AsNoTracking()` читает данные без накладных расходов на change tracker.",
         problem: "Это позволяет ускорять read-only запросы и не держать в памяти лишние графы объектов.",
+        how: "Для списков, отчётов и read model почти всегда лучше `AsNoTracking()`. Для сценария изменения сущность обычно читают с tracking, меняют состояние в памяти и затем вызывают `SaveChanges()`, чтобы EF сам собрал нужный `UPDATE`.",
         code: `
 var readModel = await db.Orders
     .AsNoTracking()
@@ -1072,7 +1190,11 @@ var readModel = await db.Orders
 var order = await db.Orders.SingleAsync(x => x.Id == orderId, ct);
 order.Cancel();
 await db.SaveChangesAsync(ct);
-        `
+        `,
+        important: [
+          "Не включай tracking по привычке во все запросы подряд: это часто лишняя нагрузка.",
+          "Если нужен только DTO-результат, доменные сущности и change tracker обычно не нужны."
+        ]
       }), [link("docs — tracking", "https://learn.microsoft.com/ru-ru/ef/core/querying/tracking")]),
       topic("Загрузка связанных данных", article({
         what: "Связанные данные можно загружать заранее через `Include`, вручную через explicit loading или лениво через lazy loading.",
@@ -1186,6 +1308,7 @@ static async Task<List<Order>> LoadOrdersAsync(IDbContextFactory<AppDbContext> f
       topic("Configure() vs ConfigureServices()", article({
         what: "В старом `Startup` метод `ConfigureServices()` регистрировал зависимости, а `Configure()` собирал HTTP-пайплайн. В современном .NET это делает `Program.cs`.",
         problem: "Понимание этого разделения помогает не путать регистрацию сервисов и порядок выполнения middleware.",
+        how: "Проще запомнить так: сначала мы описываем, какие сервисы умеет создавать контейнер DI, а потом собираем pipeline из middleware и endpoint'ов. В минимальном hosting-моделе эти две части стоят рядом, но смысл разделения остаётся тем же.",
         code: `
 var builder = WebApplication.CreateBuilder(args);
 
@@ -1194,11 +1317,16 @@ builder.Services.AddControllers();
 var app = builder.Build();
 app.MapControllers();
 app.Run();
-        `
+        `,
+        important: [
+          "Регистрация сервисов и порядок middleware — это две разные оси конфигурации приложения.",
+          "Даже в `Program.cs` полезно мысленно разделять настройку DI и настройку HTTP-конвейера."
+        ]
       }), [link("docs — startup", "https://learn.microsoft.com/ru-ru/aspnet/core/fundamentals/startup")]),
       topic("Кастомный Middleware", article({
         what: "Middleware — это шаг в HTTP-конвейере, который может читать запрос, менять ответ и решать, передавать ли выполнение дальше.",
         problem: "Собственный middleware нужен для сквозной логики вроде корреляции, логирования, headers, rate limiting или tenant resolution.",
+        how: "Запрос проходит по pipeline сверху вниз, а ответ возвращается назад. Поэтому middleware может сделать что-то до `await next(context)` и что-то после него. Это хороший инструмент для сквозных вещей, которые не должны дублироваться в каждом controller или endpoint.",
         code: `
 public sealed class RequestIdMiddleware
 {
@@ -1208,7 +1336,11 @@ public sealed class RequestIdMiddleware
         await next(context);
     }
 }
-        `
+        `,
+        important: [
+          "Middleware должен заниматься поперечной логикой, а не принимать бизнес-решения за use case.",
+          "Порядок регистрации middleware важен: от него зависит, кто кого оборачивает."
+        ]
       }), [link("docs — middleware", "https://learn.microsoft.com/ru-ru/aspnet/core/fundamentals/middleware/")]),
       topic("HttpContext.Response events", article({
         what: "`OnStarting` срабатывает перед отправкой заголовков, а `OnCompleted` — когда ответ уже полностью ушёл клиенту.",
@@ -1408,6 +1540,7 @@ public Task<OrderDto> GetAsync(Guid id, CancellationToken ct) =>
       topic("Идемпотентность", article({
         what: "Идемпотентность означает, что повтор одного и того же запроса не создаёт новых побочных эффектов.",
         problem: "Она нужна для безопасных ретраев клиента, сетевых сбоев и повторных отправок формы без дублей заказов и платежей.",
+        how: "Обычно клиент присылает `Idempotency-Key`, а сервер сохраняет результат первой успешной обработки. Если такой же ключ приходит повторно, сервер не создает заказ заново, а возвращает уже известный ответ. Это особенно важно для `POST`-операций, где повтор может быть дорогим.",
         code: `
 public async Task<IResult> CreateOrder(
     HttpContext context,
@@ -1425,7 +1558,11 @@ public async Task<IResult> CreateOrder(
 
     return Results.Created("/orders/" + response.OrderId, response);
 }
-        `
+        `,
+        important: [
+          "Идемпотентность полезна там, где повторный запрос может создать деньги, заказ или другое нежелательное дублирование.",
+          "Ключ идемпотентности должен быть связан не только с фактом повтора, но и с тем же самым бизнес-запросом."
+        ]
       }), [link("Habr — идемпотентность (Яндекс)", "https://habr.com/ru/company/yandex/blog/442762/")]),
       topic("Корректные HTTP статус коды", article({
         what: "Статус-код должен отражать реальный результат операции: найден ресурс или нет, создан он или обновлён, проблема у клиента или у сервера.",
@@ -1611,6 +1748,7 @@ app.UseAuthorization();
       topic("OAuth 2.0", article({
         what: "OAuth 2.0 описывает, как клиент получает токен доступа к защищённому ресурсу через доверенный authorization server.",
         problem: "Это отделяет аутентификацию пользователя от API и позволяет безопасно делегировать доступ сторонним приложениям.",
+        how: "Полезно различать роли: пользователь или системный владелец ресурса, клиентское приложение, authorization server и resource server. Сам API чаще всего выступает resource server: он не логинит пользователя напрямую, а принимает и валидирует access token.",
         code: `
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer("Bearer", options =>
@@ -1618,7 +1756,11 @@ builder.Services.AddAuthentication("Bearer")
         options.Authority = "https://identity.example.com";
         options.Audience = "orders-api";
     });
-        `
+        `,
+        important: [
+          "OAuth 2.0 — это прежде всего протокол делегированного доступа, а не просто способ 'включить JWT'.",
+          "Нужно чётко понимать, кто выдаёт токен, кому он предназначен и какой ресурс его принимает."
+        ]
       }), [link("Habr — OAuth 2.0", "https://habr.com/ru/company/dataart/blog/311376/")]),
       topic("Единая точка аутентификации (SSO)", article({
         what: "SSO использует один Identity Provider для нескольких приложений, чтобы пользователь логинился один раз и переиспользовал сессию.",
