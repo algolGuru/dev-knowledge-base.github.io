@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 420" role="img" aria-labelledby="title desc">
+  <title id="title">OAuth 2.0 Authorization Code with PKCE</title>
+  <desc id="desc">Browser is redirected to the identity provider, receives an authorization code, backend exchanges it with PKCE, and API validates the access token.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#181a24" />
+      <stop offset="100%" stop-color="#11131c" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#f6d365"/>
+    </marker>
+  </defs>
+  <rect width="980" height="420" rx="28" fill="url(#bg)" stroke="#3b4156" />
+  <text x="42" y="52" fill="#f6d365" font-family="'JetBrains Mono', monospace" font-size="24" font-weight="700">OAuth 2.0: Authorization Code + PKCE</text>
+  <text x="42" y="84" fill="#b8c0d4" font-family="'JetBrains Mono', monospace" font-size="16">Рекомендуемый поток для браузерных и серверных приложений: токен выдаётся после редиректа и верификации PKCE.</text>
+
+  <g font-family="'JetBrains Mono', monospace">
+    <rect x="42" y="136" width="180" height="90" rx="18" fill="#1e2333" stroke="#5aa7ff"/>
+    <text x="74" y="176" fill="#ffffff" font-size="22" font-weight="700">Browser / App</text>
+    <text x="70" y="204" fill="#9db6d8" font-size="15">Пользователь и redirect URI</text>
+
+    <rect x="396" y="116" width="200" height="120" rx="18" fill="#1d2130" stroke="#fb7185" filter="url(#glow)"/>
+    <text x="442" y="164" fill="#ffffff" font-size="22" font-weight="700">Identity Provider</text>
+    <text x="440" y="192" fill="#f8b7c3" font-size="15">Login, consent, code, PKCE</text>
+
+    <rect x="396" y="278" width="200" height="90" rx="18" fill="#182a27" stroke="#6ee7b7"/>
+    <text x="458" y="320" fill="#ffffff" font-size="22" font-weight="700">Backend</text>
+    <text x="428" y="348" fill="#b8f7de" font-size="15">Exchanges code for tokens</text>
+
+    <rect x="760" y="196" width="170" height="90" rx="18" fill="#2a2118" stroke="#f6ad55"/>
+    <text x="820" y="238" fill="#ffffff" font-size="22" font-weight="700">API</text>
+    <text x="787" y="266" fill="#ffd6a0" font-size="15">Validates access token</text>
+  </g>
+
+  <g stroke="#f6d365" stroke-width="4" fill="none" marker-end="url(#arrow)">
+    <path d="M222 160 H384"/>
+    <path d="M596 160 H742"/>
+    <path d="M842 286 V318 H596"/>
+    <path d="M496 278 V252"/>
+    <path d="M396 214 H224"/>
+  </g>
+
+  <g font-family="'JetBrains Mono', monospace" font-size="14" fill="#d6d8e4">
+    <text x="246" y="148">1. Redirect to authorization endpoint</text>
+    <text x="638" y="148">2. Code returned to app via redirect URI</text>
+    <text x="642" y="344">3. Backend redeems code + code_verifier</text>
+    <text x="416" y="264">4. Gets access / refresh tokens</text>
+    <text x="246" y="236">5. API accepts bearer token, not password</text>
+  </g>
+</svg>

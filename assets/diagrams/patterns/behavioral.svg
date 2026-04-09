@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 480" width="320" height="160" role="img" aria-label="Behavioral patterns diagram">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1422"/>
+      <stop offset="100%" stop-color="#090b12"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#fb7185"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="480" rx="28" fill="url(#bg)"/>
+  <rect x="24" y="24" width="912" height="432" rx="22" fill="none" stroke="#ffffff" stroke-opacity="0.08"/>
+  <text x="56" y="80" fill="#efe7ff" font-size="34" font-family="JetBrains Mono, Consolas, monospace" font-weight="700">BEHAVIORAL</text>
+  <text x="56" y="118" fill="#b4a9d3" font-size="22" font-family="JetBrains Mono, Consolas, monospace">Strategy, Command, Observer, State</text>
+
+  <g>
+    <rect x="70" y="190" width="160" height="84" rx="18" fill="#17111f" stroke="#a78bfa" stroke-width="3"/>
+    <text x="150" y="238" fill="#f5f3ff" font-size="28" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace">Context</text>
+  </g>
+
+  <g>
+    <rect x="305" y="128" width="200" height="56" rx="14" fill="#20162e" stroke="#a78bfa" stroke-width="2"/>
+    <text x="405" y="164" fill="#ede9fe" font-size="22" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace">Strategy</text>
+    <rect x="305" y="204" width="200" height="56" rx="14" fill="#20162e" stroke="#fb7185" stroke-width="2"/>
+    <text x="405" y="240" fill="#ffe4e6" font-size="22" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace">Command</text>
+    <rect x="305" y="280" width="200" height="56" rx="14" fill="#20162e" stroke="#60a5fa" stroke-width="2"/>
+    <text x="405" y="316" fill="#dbeafe" font-size="22" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace">Observer</text>
+    <rect x="305" y="356" width="200" height="56" rx="14" fill="#20162e" stroke="#34d399" stroke-width="2"/>
+    <text x="405" y="392" fill="#d1fae5" font-size="22" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace">State</text>
+  </g>
+
+  <g stroke="url(#accent)" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M230 232 H292"/>
+    <path d="M276 224 L292 232 L276 240"/>
+    <path d="M505 156 H635"/>
+    <path d="M619 148 L635 156 L619 164"/>
+    <path d="M505 232 H635"/>
+    <path d="M619 224 L635 232 L619 240"/>
+    <path d="M505 308 H635"/>
+    <path d="M619 300 L635 308 L619 316"/>
+    <path d="M505 384 H635"/>
+    <path d="M619 376 L635 384 L619 392"/>
+  </g>
+
+  <g>
+    <rect x="650" y="130" width="250" height="238" rx="22" fill="#12141d" stroke="#ffffff" stroke-opacity="0.08" stroke-width="2"/>
+    <text x="775" y="175" fill="#f7f1ff" font-size="24" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace">Behavior</text>
+    <path d="M700 214 C742 194, 808 194, 850 214" fill="none" stroke="rgba(167,139,250,0.55)" stroke-width="5" stroke-linecap="round"/>
+    <path d="M700 260 C742 240, 808 240, 850 260" fill="none" stroke="rgba(251,113,133,0.55)" stroke-width="5" stroke-linecap="round"/>
+    <path d="M700 306 C742 286, 808 286, 850 306" fill="none" stroke="rgba(52,211,153,0.55)" stroke-width="5" stroke-linecap="round"/>
+  </g>
+</svg>

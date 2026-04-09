@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 360" role="img" aria-labelledby="title desc">
+  <title id="title">SSO session chain</title>
+  <desc id="desc">One identity provider session is reused by multiple applications so the user signs in once and all apps trust the same identity.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#60a5fa"/>
+    </marker>
+  </defs>
+  <rect width="980" height="360" rx="28" fill="#12131a" stroke="#364055"/>
+  <text x="42" y="54" fill="#f6d365" font-family="'JetBrains Mono', monospace" font-size="24" font-weight="700">SSO: одна доверенная сессия, несколько приложений</text>
+  <text x="42" y="84" fill="#b8c0d4" font-family="'JetBrains Mono', monospace" font-size="15">Повторный вход чаще всего происходит не потому, что приложения “делятся кукой”, а потому что все доверяют одной сессии у IdP.</text>
+
+  <g font-family="'JetBrains Mono', monospace">
+    <rect x="48" y="150" width="160" height="84" rx="18" fill="#1e2333" stroke="#5aa7ff"/>
+    <text x="78" y="196" fill="#fff" font-size="22" font-weight="700">Browser</text>
+
+    <rect x="322" y="110" width="220" height="140" rx="22" fill="#2a1d26" stroke="#fb7185"/>
+    <text x="372" y="156" fill="#fff" font-size="22" font-weight="700">Identity Provider</text>
+    <text x="360" y="186" fill="#f9bcc8" font-size="15">MFA, policies, central session</text>
+    <rect x="374" y="204" width="118" height="28" rx="14" fill="#fb7185" opacity="0.18" stroke="#fb7185"/>
+    <text x="394" y="223" fill="#fff" font-size="13">SSO cookie</text>
+
+    <rect x="676" y="72" width="220" height="64" rx="18" fill="#182a27" stroke="#6ee7b7"/>
+    <text x="741" y="112" fill="#fff" font-size="21" font-weight="700">CRM</text>
+
+    <rect x="676" y="154" width="220" height="64" rx="18" fill="#182a27" stroke="#6ee7b7"/>
+    <text x="724" y="194" fill="#fff" font-size="21" font-weight="700">Admin Portal</text>
+
+    <rect x="676" y="236" width="220" height="64" rx="18" fill="#182a27" stroke="#6ee7b7"/>
+    <text x="748" y="276" fill="#fff" font-size="21" font-weight="700">Docs</text>
+  </g>
+
+  <g stroke="#60a5fa" stroke-width="4" fill="none" marker-end="url(#arrow)">
+    <path d="M208 190 H304"/>
+    <path d="M542 140 H658"/>
+    <path d="M542 182 H658"/>
+    <path d="M542 224 H658"/>
+  </g>
+
+  <g font-family="'JetBrains Mono', monospace" font-size="13" fill="#d6d8e4">
+    <text x="224" y="176">1. Первое приложение отправляет на IdP</text>
+    <text x="566" y="128">2. После логина приложения получают identity/token</text>
+    <text x="566" y="332">3. Для следующего приложения IdP переиспользует свою сессию</text>
+  </g>
+</svg>

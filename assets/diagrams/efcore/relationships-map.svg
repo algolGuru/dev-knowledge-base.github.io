@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img" aria-label="EF Core relationship map">
+  <rect width="1200" height="700" fill="#0b1020"/>
+  <circle cx="210" cy="560" r="170" fill="#a78bfa" opacity="0.10"/>
+  <circle cx="980" cy="160" r="190" fill="#60a5fa" opacity="0.08"/>
+  <text x="64" y="92" fill="#e8e6f0" font-size="34" font-family="Inter, Segoe UI, sans-serif" font-weight="700">Relationships are FK-driven</text>
+  <text x="64" y="128" fill="#9ca3af" font-size="18" font-family="Inter, Segoe UI, sans-serif">principal, dependent, navigation, cardinality</text>
+
+  <g font-family="Inter, Segoe UI, sans-serif">
+    <rect x="90" y="230" width="210" height="110" rx="20" fill="#16233a" stroke="#60a5fa" stroke-width="2"/>
+    <text x="195" y="275" text-anchor="middle" fill="#e8e6f0" font-size="21" font-weight="700">Principal</text>
+    <text x="195" y="305" text-anchor="middle" fill="#9ca3af" font-size="16">parent / aggregate root</text>
+
+    <rect x="470" y="190" width="250" height="190" rx="20" fill="#162036" stroke="#4fd1c5" stroke-width="2"/>
+    <text x="595" y="238" text-anchor="middle" fill="#e8e6f0" font-size="21" font-weight="700">Dependent</text>
+    <text x="595" y="270" text-anchor="middle" fill="#9ca3af" font-size="16">FK points to principal</text>
+    <text x="595" y="303" text-anchor="middle" fill="#9ca3af" font-size="16">navigation may be optional</text>
+    <text x="595" y="336" text-anchor="middle" fill="#9ca3af" font-size="16">collection or reference</text>
+
+    <rect x="860" y="230" width="240" height="110" rx="20" fill="#1f2937" stroke="#f6ad55" stroke-width="2"/>
+    <text x="980" y="275" text-anchor="middle" fill="#e8e6f0" font-size="21" font-weight="700">Foreign key</text>
+    <text x="980" y="305" text-anchor="middle" fill="#9ca3af" font-size="16">scalar or composite</text>
+  </g>
+
+  <path d="M300 285H464" stroke="#60a5fa" stroke-width="5" fill="none"/>
+  <path d="M720 285H856" stroke="#4fd1c5" stroke-width="5" fill="none"/>
+  <path d="M550 380V448c0 30-20 48-56 48H210c-42 0-58 15-58 46v30" stroke="#a78bfa" stroke-width="5" fill="none"/>
+  <text x="352" y="264" fill="#60a5fa" font-family="Inter, Segoe UI, sans-serif" font-size="18">1..*</text>
+  <text x="748" y="264" fill="#4fd1c5" font-family="Inter, Segoe UI, sans-serif" font-size="18">1</text>
+
+  <g font-family="Inter, Segoe UI, sans-serif" font-size="17" fill="#d7d7e5">
+    <text x="80" y="590">One-to-many</text>
+    <text x="280" y="590">One-to-one</text>
+    <text x="500" y="590">Many-to-many</text>
+    <text x="730" y="590">Composite key</text>
+  </g>
+</svg>

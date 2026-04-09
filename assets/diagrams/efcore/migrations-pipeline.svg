@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img" aria-label="EF Core migrations pipeline">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b1020"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#4fd1c5"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="18" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="1200" height="700" fill="url(#bg)"/>
+  <circle cx="170" cy="140" r="130" fill="#60a5fa" opacity="0.12"/>
+  <circle cx="1030" cy="560" r="160" fill="#4fd1c5" opacity="0.10"/>
+  <rect x="48" y="48" width="1104" height="604" rx="28" fill="none" stroke="rgba(255,255,255,0.10)" stroke-width="2"/>
+  <text x="72" y="102" fill="#e8e6f0" font-size="34" font-family="Inter, Segoe UI, sans-serif" font-weight="700">Model snapshot drives the pipeline</text>
+  <text x="72" y="138" fill="#9ca3af" font-size="18" font-family="Inter, Segoe UI, sans-serif">diff + scaffold + review + apply</text>
+
+  <g font-family="Inter, Segoe UI, sans-serif" font-size="20" font-weight="600" fill="#e8e6f0">
+    <rect x="90" y="250" width="180" height="110" rx="20" fill="#172036" stroke="#60a5fa" stroke-width="2"/>
+    <text x="180" y="296" text-anchor="middle">Current model</text>
+    <text x="180" y="326" text-anchor="middle" fill="#9ca3af" font-size="16">OnModelCreating</text>
+
+    <rect x="330" y="250" width="180" height="110" rx="20" fill="#16233a" stroke="#4fd1c5" stroke-width="2"/>
+    <text x="420" y="296" text-anchor="middle">Snapshot</text>
+    <text x="420" y="326" text-anchor="middle" fill="#9ca3af" font-size="16">old model</text>
+
+    <rect x="570" y="250" width="180" height="110" rx="20" fill="#1d2438" stroke="#f6ad55" stroke-width="2"/>
+    <text x="660" y="296" text-anchor="middle">Migration</text>
+    <text x="660" y="326" text-anchor="middle" fill="#9ca3af" font-size="16">C# + metadata</text>
+
+    <rect x="810" y="250" width="180" height="110" rx="20" fill="#1e1f33" stroke="#fb7185" stroke-width="2"/>
+    <text x="900" y="296" text-anchor="middle">SQL script</text>
+    <text x="900" y="326" text-anchor="middle" fill="#9ca3af" font-size="16">provider-specific</text>
+  </g>
+
+  <g stroke="url(#accent)" stroke-width="5" fill="none" filter="url(#glow)">
+    <path d="M270 305H326"/>
+    <path d="M510 305H566"/>
+    <path d="M750 305H806"/>
+  </g>
+  <g fill="#4fd1c5" font-family="Inter, Segoe UI, sans-serif" font-size="18" font-weight="600">
+    <text x="298" y="288" text-anchor="middle">compare</text>
+    <text x="538" y="288" text-anchor="middle">scaffold</text>
+    <text x="778" y="288" text-anchor="middle">generate</text>
+  </g>
+
+  <g font-family="Inter, Segoe UI, sans-serif">
+    <rect x="430" y="452" width="340" height="90" rx="18" fill="#0f172a" stroke="#64748b" stroke-width="2"/>
+    <text x="600" y="490" text-anchor="middle" fill="#e8e6f0" font-size="20" font-weight="600">Apply to database</text>
+    <text x="600" y="520" text-anchor="middle" fill="#9ca3af" font-size="16">Migrate / MigrateAsync / script</text>
+  </g>
+
+  <path d="M900 360v56c0 18-8 34-24 46l-42 32" stroke="#fb923c" stroke-width="5" fill="none"/>
+  <path d="M900 360v56c0 18 8 34 24 46l42 32" stroke="#60a5fa" stroke-width="5" fill="none" opacity="0.35"/>
+  <text x="932" y="455" fill="#f6d365" font-family="Inter, Segoe UI, sans-serif" font-size="17">review before apply</text>
+</svg>

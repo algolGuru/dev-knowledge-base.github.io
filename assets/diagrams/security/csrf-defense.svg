@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 380" role="img" aria-labelledby="title desc">
+  <title id="title">CSRF defense</title>
+  <desc id="desc">A forged request may carry cookies automatically, so the server validates an antiforgery token or a custom header before accepting state-changing actions.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#fb7185"/>
+    </marker>
+  </defs>
+  <rect width="980" height="380" rx="28" fill="#12131a" stroke="#364055"/>
+  <text x="42" y="54" fill="#f6d365" font-family="'JetBrains Mono', monospace" font-size="24" font-weight="700">CSRF: почему одной cookie недостаточно</text>
+  <text x="42" y="84" fill="#b8c0d4" font-family="'JetBrains Mono', monospace" font-size="15">Браузер прикладывает cookie сам, поэтому state-changing запросы должны проверять дополнительное доказательство происхождения.</text>
+
+  <g font-family="'JetBrains Mono', monospace">
+    <rect x="60" y="164" width="180" height="74" rx="18" fill="#2a1d26" stroke="#fb7185"/>
+    <text x="100" y="208" fill="#fff" font-size="21" font-weight="700">Malicious site</text>
+
+    <rect x="396" y="124" width="176" height="154" rx="20" fill="#1e2333" stroke="#5aa7ff"/>
+    <text x="442" y="168" fill="#fff" font-size="21" font-weight="700">Browser</text>
+    <text x="424" y="202" fill="#9db6d8" font-size="14">auto-sends session cookie</text>
+    <rect x="430" y="222" width="108" height="30" rx="14" fill="#5aa7ff" opacity="0.2" stroke="#5aa7ff"/>
+    <text x="448" y="242" fill="#fff" font-size="13">session cookie</text>
+
+    <rect x="706" y="124" width="212" height="154" rx="20" fill="#182a27" stroke="#6ee7b7"/>
+    <text x="760" y="168" fill="#fff" font-size="21" font-weight="700">Your app</text>
+    <text x="734" y="204" fill="#b8f7de" font-size="14">validate token/header</text>
+    <text x="730" y="230" fill="#b8f7de" font-size="14">reject if origin proof is missing</text>
+  </g>
+
+  <g stroke="#fb7185" stroke-width="4" fill="none" marker-end="url(#arrow)">
+    <path d="M240 200 H378"/>
+  </g>
+  <g stroke="#6ee7b7" stroke-width="4" fill="none" marker-end="url(#arrow)">
+    <path d="M572 200 H688"/>
+  </g>
+
+  <g font-family="'JetBrains Mono', monospace" font-size="13" fill="#d6d8e4">
+    <text x="258" y="186">1. POST/DELETE может уйти автоматически с cookie</text>
+    <text x="594" y="186">2. сервер требует antiforgery token / custom header</text>
+    <text x="594" y="324">SameSite помогает, но не заменяет проверку для cookie-based flows</text>
+  </g>
+</svg>

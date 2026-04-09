@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img" aria-label="Parallel operations need separate DbContext instances">
+  <rect width="1200" height="700" fill="#0b1020"/>
+  <text x="64" y="92" fill="#e8e6f0" font-size="34" font-family="Inter, Segoe UI, sans-serif" font-weight="700">One DbContext per concurrent operation</text>
+  <text x="64" y="128" fill="#9ca3af" font-size="18" font-family="Inter, Segoe UI, sans-serif">DbContext is not thread-safe</text>
+
+  <g font-family="Inter, Segoe UI, sans-serif" font-size="20" font-weight="700">
+    <rect x="90" y="250" width="220" height="110" rx="20" fill="#122031" stroke="#60a5fa" stroke-width="2"/>
+    <text x="200" y="298" text-anchor="middle" fill="#e8e6f0">Task A</text>
+    <text x="200" y="330" text-anchor="middle" fill="#9ca3af" font-size="16">DbContext A</text>
+
+    <rect x="490" y="250" width="220" height="110" rx="20" fill="#122031" stroke="#4fd1c5" stroke-width="2"/>
+    <text x="600" y="298" text-anchor="middle" fill="#e8e6f0">Task B</text>
+    <text x="600" y="330" text-anchor="middle" fill="#9ca3af" font-size="16">DbContext B</text>
+
+    <rect x="890" y="250" width="220" height="110" rx="20" fill="#122031" stroke="#f6ad55" stroke-width="2"/>
+    <text x="1000" y="298" text-anchor="middle" fill="#e8e6f0">Task C</text>
+    <text x="1000" y="330" text-anchor="middle" fill="#9ca3af" font-size="16">DbContext C</text>
+  </g>
+
+  <path d="M310 305H480" stroke="#60a5fa" stroke-width="5"/>
+  <path d="M710 305H880" stroke="#4fd1c5" stroke-width="5"/>
+  <text x="350" y="286" fill="#f6d365" font-family="Inter, Segoe UI, sans-serif" font-size="17">parallel</text>
+  <text x="750" y="286" fill="#f6d365" font-family="Inter, Segoe UI, sans-serif" font-size="17">parallel</text>
+
+  <rect x="300" y="470" width="600" height="94" rx="18" fill="#171c2a" stroke="#fb7185" stroke-width="2"/>
+  <text x="600" y="508" text-anchor="middle" fill="#e8e6f0" font-size="20" font-family="Inter, Segoe UI, sans-serif" font-weight="700">Do not share a single context across multiple in-flight awaits</text>
+  <text x="600" y="538" text-anchor="middle" fill="#9ca3af" font-size="16" font-family="Inter, Segoe UI, sans-serif">use a factory, scope, or explicit context per worker</text>
+</svg>

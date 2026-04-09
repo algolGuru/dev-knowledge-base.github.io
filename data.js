@@ -111,51 +111,47 @@ Infrastructure (DB, SMTP, broker, files)
           "Зависимости должны смотреть внутрь: домен не знает про HTTP, EF Core и внешние SDK."
         ]
       }), [link("The Clean Architecture — Uncle Bob", "https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html")]),
-      topic("Чистая архитектура (Clean Architecture)", theory({
-        what: "Clean Architecture — это подход, в котором бизнес-логика ставится в центр, а UI, база данных и фреймворки считаются внешними деталями. Идея не в круговых диаграммах ради красоты, а в том, чтобы важные правила приложения жили отдельно от технической обвязки.",
-        problem: "Без этого зависимости быстро начинают течь наружу-внутрь хаотично: контроллеры принимают бизнес-решения, EF Core диктует форму домена, а use case становится привязан к конкретному web/framework стеку.",
-        diagram: `
-Frameworks & Drivers
-Interface Adapters
-Use Cases
-Entities
+            topic("Чистая архитектура (Clean Architecture)", `## Что это
+Clean Architecture держит бизнес-модель в центре системы. UI, веб-фреймворк, ORM, очередь и файловое хранилище оказываются снаружи и подключаются через интерфейсы, а не наоборот.
 
-Зависимости кода направлены только внутрь.
-Внешние слои могут зависеть от внутренних,
-внутренние от внешних — нет.
-        `,
-        details: `На практике из этой идеи обычно следуют три простых правила:
+![Схема Clean Architecture](/assets/diagrams/arch/clean-architecture.svg)
 
-- бизнес-правила не зависят от web/framework;
-- доступ к БД и интеграции прячется за интерфейсами;
-- use case можно вызывать не только из HTTP, но и из джобы, консоли или теста.
+## Как читать схему
+- **Entities** и **Use Cases** содержат то, что должно жить дольше всего.
+- **Interface Adapters** переводят HTTP, JSON и SQL в контракты приложения.
+- **Frameworks & Drivers** - это заменяемые детали: ASP.NET Core, EF Core, брокеры, UI.
 
-Dependency Inversion здесь означает, что внутренний слой формулирует контракт, а внешний слой его реализует. Например, \`IOrderRepository\` может жить рядом с use case или доменом, а реализация на EF Core — уже в инфраструктуре.`,
-        important: [
-          "Clean Architecture не требует буквального копирования всех кругов, она требует управляемых зависимостей.",
-          "Если завтра поменяется UI, ORM или способ доставки сообщений, ядро приложения не должно переписываться."
-        ]
-      }), [link("Clean Architecture — оригинал", "https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html")]),
-      topic("Разделение на компоненты и модули", article({
-        what: "Модули группируют код по фиче или bounded context, чтобы внутри лежали свои контроллеры, application-слой, домен и инфраструктура.",
-        problem: "Это уменьшает связанность между частями монолита и позволяет развивать фичи почти как отдельные мини-приложения.",
-        how: "Обычно хороший модуль выглядит как вертикальный срез: внутри рядом лежат входные точки, use cases, доменная модель и инфраструктурные реализации именно этой фичи. Важно, чтобы соседний модуль не ходил в чужие внутренности напрямую, а работал через публичный контракт или application API.",
-        code: `
-public static class BillingModule
-{
-    public static IServiceCollection AddBilling(this IServiceCollection services)
-    {
-        services.AddScoped<CreateInvoiceHandler>();
-        services.AddScoped<IInvoiceRepository, InvoiceRepository>();
-        return services;
-    }
-}
-        `,
-        important: [
-          "Модуль удобнее строить вокруг бизнес-возможности, а не вокруг технического слоя.",
-          "Если для изменения одной фичи приходится трогать много несвязанных папок, границы модулей выбраны плохо."
-        ]
-      })),
+## Практически
+- В Application Core обычно держат сущности, абстракции, доменные сервисы и сценарии.
+- В Infrastructure лежат реализации репозиториев, отправка писем, очереди, файловая система.
+- Если класс знает, как открыть DbContext или какой JSON вернуть контроллеру, он уже слишком близко к внешнему миру.
+- Хорошая проверка простая: бизнес-правило должно оставаться понятным даже без знания HTTP и базы данных.
+`, [
+          link("The Clean Architecture", "https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html"),
+          link("Common web application architectures - .NET", "https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/common-web-application-architectures"),
+          link("Designing a DDD-oriented microservice - .NET", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/ddd-oriented-microservice")
+        ]),
+            topic("Разделение на компоненты и модули", `## Зачем
+Модульный монолит - это не просто много папок. Это один деплой, в котором каждая фича владеет своим публичным контрактом, своим use case-слоем и своими адаптерами.
+
+![Модульный монолит](/assets/diagrams/arch/modular-monolith.svg)
+
+## Хороший разрез
+- Модуль собирается вокруг бизнеса, а не вокруг технического слоя.
+- Между модулями лучше ходить через команды, события или фасады, а не через чужие сервисы и DbContext.
+- Внутри модуля можно держать свой мини-стек: API -> Application -> Domain -> Infrastructure.
+- Это удобно, когда одну фичу хочется понимать, тестировать и развивать отдельно от остальных.
+
+## Признаки удачной границы
+- Изменение одной фичи не ломает соседние.
+- У модуля есть понятный контракт наружу.
+- Компонентный набор можно вынести в отдельный сервис без переписывания всей системы.
+- Если для новой фичи приходится трогать половину решения, граница выбрана неудачно.
+`, [
+          link("On .NET Live - Modular Monoliths with ASP.NET Core", "https://learn.microsoft.com/en-us/shows/on-dotnet/on-dotnet-live-modular-monoliths-with-aspnet-core"),
+          link("On .NET Live - Clean Architecture, Vertical Slices, and Modular Monoliths (Oh My!)", "https://learn.microsoft.com/en-us/shows/on-dotnet/on-dotnet-live-clean-architecture-vertical-slices-and-modular-monoliths-oh-my"),
+          link("Common web application architectures - .NET", "https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/common-web-application-architectures")
+        ]),
       topic("Реализация Outbox", `## Зачем вообще Outbox
 
 Проблема в том, что нельзя надежно сделать так:
@@ -658,1249 +654,1163 @@ AggregateRoot -> DomainEvents -> UnitOfWork.CommitAsync() -> OutboxMessages
 * приложение остается простым
 * инфраструктура надежно сохраняет события
 * публикация наружу происходит отдельно`, [link("microservices.io — Outbox", "https://microservices.io/patterns/data/transactional-outbox.html")]),
-      topic("Domain layer — что пишем, структура", article({
-        what: "В `Domain` лежат агрегаты, entities, value objects, domain services и domain events. Здесь нет контроллеров, SQL и вызовов брокеров.",
-        problem: "Это держит бизнес-правила в одном месте и не даёт инфраструктуре определять поведение модели.",
-        how: "Если правило влияет на корректность предметной модели, его место почти всегда в домене. Например, `Email` должен валидировать себя сам, а `Customer` должен менять email через доменный метод, а не через прямое присваивание из контроллера.",
-        code: `
-public sealed record Email
-{
-    public string Value { get; }
+            topic("Domain layer — что пишем, структура", `## Что здесь живёт
+Доменные сущности, value objects, агрегаты, доменные сервисы и доменные события. Это слой, где формулируется язык предметной области и защищаются инварианты.
 
-    public Email(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value) || !value.Contains("@"))
-            throw new ArgumentException("Email is invalid.");
+![Domain layer](/assets/diagrams/arch/domain-layer.svg)
 
-        Value = value.Trim().ToLowerInvariant();
-    }
-}
+## Что полезно держать внутри
+- Инварианты и проверки на изменение состояния.
+- Доменные методы, а не только набор сеттеров.
+- Value Object для денег, email, срока, адреса, статуса и других смысловых единиц.
+- Доменные события, если они помогают выразить факт, а не техническую деталь.
 
-public sealed class Customer
-{
-    public Guid Id { get; private set; }
-    public Email Email { get; private set; } = new Email("demo@example.com");
+## Чего здесь быть не должно
+- HTTP, MVC и HttpContext.
+- DbContext, SQL-запросов и любых ORM-специфичных деталей.
+- UI-моделей и сценариев доставки ответа.
+- Логики "как сохранить" - здесь должно быть только "что должно быть истинным".
+`, [
+          link("Designing a DDD-oriented microservice - .NET", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/ddd-oriented-microservice"),
+          link("Common web application architectures - .NET", "https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/common-web-application-architectures")
+        ]),
+            topic("Application layer — что пишем, структура", `## Роль слоя
+Application layer собирает сценарий: принимает command или query, вызывает доменную модель, управляет транзакцией, оркестрирует порты и возвращает DTO. Он отвечает на вопрос "что происходит сейчас?", а не "как устроена база".
 
-    public void ChangeEmail(Email email)
-    {
-        Email = email;
-    }
-}
-        `,
-        important: [
-          "Домен должен говорить на языке бизнеса, а не на языке HTTP, SQL и ORM.",
-          "Чем больше инвариантов живёт в доменной модели, тем меньше дублирования по контроллерам и handler'ам."
-        ]
-      })),
-      topic("Application layer — что пишем, структура", article({
-        what: "Application слой описывает use cases: принимает команду, загружает агрегат, вызывает доменный метод и сохраняет изменения.",
-        problem: "Так контроллеры, джобы и интеграции не дублируют оркестрацию одного и того же сценария.",
-        how: "Обычно поток такой: endpoint или job создаёт команду, handler поднимает нужные данные, вызывает доменную модель и фиксирует изменения. Application слой координирует сценарий, но не подменяет собой доменные правила.",
-        code: `
-public sealed record CancelOrderCommand(Guid OrderId);
+![Application layer](/assets/diagrams/arch/application-layer.svg)
 
-public sealed class CancelOrderHandler
-{
-    private readonly IOrderRepository _orders;
-    private readonly IUnitOfWork _unitOfWork;
+## Типичный состав
+- Handlers для команд и запросов.
+- DTO, request/response модели и маппинг.
+- Границы транзакции и Unit of Work.
+- Интерфейсы для репозиториев, внешних API и уведомлений.
+- Идемпотентность, авторизация на уровне сценария и повторные попытки там, где это нужно.
 
-    public async Task Handle(CancelOrderCommand command, CancellationToken ct)
-    {
-        var order = await _orders.GetByIdAsync(command.OrderId, ct);
-        order.Cancel();
-        await _unitOfWork.SaveChangesAsync(ct);
-    }
-}
-        `,
-        important: [
-          "Application слой отвечает за сценарий, а не за хранение бизнес-правил.",
-          "Один и тот же use case должен одинаково работать из API, фоновой задачи и теста."
-        ]
-      })),
-      topic("Изучение DDD-проекта ТЛ", article({
-        what: "Эта тема про разбор реального DDD-проекта: смотреть на границы модулей, направление зависимостей, расположение use cases и правила внутри агрегатов.",
-        problem: "Без живого проекта DDD остаётся теорией, а реальная codebase быстро показывает, где команда нарушает границы слоёв.",
-        code: `
-[Fact]
-public void Domain_Should_Not_Depend_On_Infrastructure()
-{
-    var result = Types.InAssembly(typeof(Order).Assembly)
-        .ShouldNot()
-        .HaveDependencyOn("Demo.Infrastructure")
-        .GetResult();
+## Полезная граница
+- Бизнес-правила и инварианты остаются в domain layer.
+- Application layer не должен превращаться в свалку из SQL и маппинга.
+- Если use case стал длинным, его обычно лучше разбить на более узкие сценарии, а не переносить логику в контроллер.
+`, [
+          link("Designing a DDD-oriented microservice - .NET", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/ddd-oriented-microservice"),
+          link("Common web application architectures - .NET", "https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/common-web-application-architectures"),
+          link("Developing ASP.NET Core MVC apps - .NET", "https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/develop-asp-net-core-mvc-apps")
+        ]),
+            topic("Изучение DDD-проекта ТЛ", `## Как читать чужой DDD-проект
+Когда вы открываете проект ТЛ, лучше начинать не с папок, а с потока: где вход, где границы контекстов, какие агрегаты владеют данными и где события покидают модуль.
 
-    result.IsSuccessful.Should().BeTrue();
-}
-        `
-      }))
+![Карта чтения DDD-проекта](/assets/diagrams/arch/ddd-study-map.svg)
+
+## Маршрут исследования
+1. Найдите entry point и публичные use case-ы.
+2. Определите bounded contexts и module boundaries.
+3. Откройте агрегаты: какие инварианты они защищают и что меняется атомарно.
+4. Проследите доменные события, интеграции и outbox.
+5. Смотрите тесты на поведение, а не только на покрытие.
+
+## Что обычно быстро показывает качество
+- Границы между контекстами читаются без комментариев.
+- Каждый агрегат владеет небольшой согласованной транзакцией.
+- Инфраструктура не протекает в доменную модель.
+- Сценарии можно объяснить через язык бизнеса, а не через таблицы.
+`, [
+          link("Designing a DDD-oriented microservice - .NET", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/ddd-oriented-microservice"),
+          link("Common web application architectures - .NET", "https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/common-web-application-architectures"),
+          link("On .NET Live - Clean Architecture, Vertical Slices, and Modular Monoliths (Oh My!)", "https://learn.microsoft.com/en-us/shows/on-dotnet/on-dotnet-live-clean-architecture-vertical-slices-and-modular-monoliths-oh-my")
+        ])
     ]
   },  {
     id: "patterns", title: "Паттерны проектирования", icon: "&#9873;", color: "amber",
     rows: [
-      topic("Порождающие (Creational)", article({
-        what: "Порождающие паттерны управляют созданием объектов, когда конструктор уже не отражает всей сложности инициализации.",
-        problem: "Они убирают условную сборку объектов из клиентского кода и централизуют создание зависимостей.",
-        code: `
-public interface IPaymentClient
-{
-    Task ChargeAsync(decimal amount, CancellationToken ct);
-}
+            topic("Порождающие (Creational)", `![Схема порождающих паттернов](/assets/diagrams/patterns/creational.svg)
 
-public sealed class PaymentClientFactory
-{
-    public IPaymentClient Create(string provider) =>
-        provider switch
-        {
-            "stripe" => new StripePaymentClient(),
-            "paypal" => new PaypalPaymentClient(),
-            _ => throw new NotSupportedException(provider)
-        };
-}
-        `
-      }), [link("refactoring.guru — порождающие", "https://refactoring.guru/ru/design-patterns/creational-patterns")]),
-      topic("Структурные (Structural)", article({
-        what: "Структурные паттерны помогают безопасно склеивать уже существующие классы и интерфейсы.",
-        problem: "Они особенно полезны при интеграции с чужим API или когда нужно добавить поведение без изменения исходного класса.",
-        code: `
-public interface INotifier
-{
-    Task SendAsync(string message, CancellationToken ct);
-}
+## Что это
+Порождающие паттерны отделяют *что* нужно создать от *как* именно это собрать. Это полезно, когда простой \`new\` уже не передаёт всю историю: есть выбор реализации, пошаговая сборка, сложная инициализация или необходимость контролировать жизненный цикл объекта.
 
-public sealed class SlackApi
-{
-    public Task PostMessageAsync(string text, CancellationToken ct) => Task.CompletedTask;
-}
+## Когда они действительно помогают
+- Когда у одного и того же интерфейса есть несколько реализаций, а решение зависит от конфигурации, окружения или типа сценария.
+- Когда объект должен собираться по шагам и валидация на каждом шаге важнее одного длинного конструктора.
+- Когда создание дорогое, а результат можно повторно использовать или клонировать.
 
-public sealed class SlackNotifier : INotifier
-{
-    private readonly SlackApi _api = new();
+## Что обычно сюда относят
+Factory Method и Abstract Factory помогают скрыть конкретный класс. Builder делает создание пошаговым. Prototype полезен, когда дешевле копировать уже подготовленный объект, чем собирать его заново. Singleton, если он вообще нужен, стоит держать как редкий исключительный случай, а не как стиль по умолчанию.
 
-    public Task SendAsync(string message, CancellationToken ct) =>
-        _api.PostMessageAsync(message, ct);
-}
-        `
-      }), [link("refactoring.guru — структурные", "https://refactoring.guru/ru/design-patterns/structural-patterns")]),
-      topic("Поведенческие (Behavioral)", article({
-        what: "Поведенческие паттерны описывают, как объекты принимают решения, обмениваются сообщениями и меняют алгоритм выполнения.",
-        problem: "Они позволяют заменить длинные `if/switch` на расширяемые сценарии без переписывания клиента.",
-        code: `
-public interface IPriceStrategy
-{
-    decimal Calculate(decimal basePrice);
-}
+## Практический ориентир
+Если клиенту приходится знать слишком много о том, *какой* класс создать и *как* его правильно собрать, это хороший сигнал присмотреться к порождающему паттерну. Хороший результат здесь - код, в котором создание живет рядом с политикой приложения, а не размазано по \`switch\` и \`if\` по всей базе.
 
-public sealed class VipPriceStrategy : IPriceStrategy
-{
-    public decimal Calculate(decimal basePrice) => basePrice * 0.9m;
-}
+## Что запомнить
+- Порождающий паттерн упрощает не объект, а место, где он рождается.
+- Чем больше вариантов и условий вокруг создания, тем полезнее абстракция.
+- Если вариантов один-два и они почти не меняются, лишняя фабрика только усложнит код.`, [
+          link("Refactoring Guru — Creational patterns", "https://refactoring.guru/design-patterns/creational-patterns"),
+          link("Refactoring Guru — Design patterns catalog", "https://refactoring.guru/design-patterns/catalog"),
+          link("O'Reilly — Design Patterns: Elements of Reusable Object-Oriented Software", "https://www.oreilly.com/library/view/design-patterns-elements/0201633612/")
+        ]),
+            topic("Структурные (Structural)", `![Схема структурных паттернов](/assets/diagrams/patterns/structural.svg)
 
-public sealed class CheckoutService
-{
-    public decimal Calculate(decimal basePrice, IPriceStrategy strategy) =>
-        strategy.Calculate(basePrice);
-}
-        `
-      }), [link("refactoring.guru — поведенческие", "https://refactoring.guru/ru/design-patterns/behavioral-patterns")]),
-      topic("Правила применения", article({
-        what: "Паттерн нужен только тогда, когда у задачи есть повторяемая проблема и реальная вариативность поведения, а не ради красивой диаграммы.",
-        problem: "Это защищает от overengineering, лишних интерфейсов и ситуации, когда паттерн делает код сложнее исходного решения.",
-        code: `
-public interface IDiscountPolicy
-{
-    bool CanApply(Customer customer);
-    decimal Apply(decimal total);
-}
+## Что это
+Структурные паттерны не изобретают новые смыслы, а собирают уже существующие классы и интерфейсы в более удобную форму. Их сила в том, что они меняют *отношения* между объектами: прячут сложность, добавляют поведение, адаптируют внешний контракт или собирают дерево из частей.
 
-public sealed class CheckoutService
-{
-    private readonly IReadOnlyCollection<IDiscountPolicy> _policies;
+## Где они особенно полезны
+- Когда есть чужой API или legacy-класс, который неудобно использовать напрямую.
+- Когда поведение нужно добавлять без переписывания исходного класса.
+- Когда сложная система должна выглядеть для клиента как один простой вход.
 
-    public decimal Calculate(Customer customer, decimal total)
-    {
-        var policy = _policies.SingleOrDefault(x => x.CanApply(customer));
-        return policy?.Apply(total) ?? total;
-    }
-}
-        `,
-        important: [
-          "Если вариация одна и не меняется, паттерн чаще всего не нужен.",
-          "Сначала докажи проблему, потом добавляй абстракцию."
-        ]
-      }))
+## Что обычно сюда относят
+Adapter спасает от несовместимых интерфейсов. Decorator добавляет поведение слоями. Facade прячет сложный подсистемный ландшафт. Composite даёт работать с деревом как с одним объектом. Bridge разрывает жёсткую связь между абстракцией и реализацией. Proxy ставит управляемую прослойку перед объектом.
+
+## Практический ориентир
+Если ты ловишь себя на том, что переписываешь один и тот же код обвязки вокруг разных классов, или пытаешься прикрутить поведение к уже живому типу, структурный паттерн часто оказывается дешевле, чем очередной рефакторинг на месте. Он особенно хорош там, где важны совместимость, оборачиваемость и аккуратные границы.
+
+## Что запомнить
+- Структурные паттерны обычно уменьшают связанность.
+- Они полезны там, где композиция выигрывает у наследования.
+- Лучший признак - когда код уже существует, а не когда ты проектируешь всё с нуля.`, [
+          link("Refactoring Guru — Structural patterns", "https://refactoring.guru/design-patterns/structural-patterns"),
+          link("Refactoring Guru — Design patterns catalog", "https://refactoring.guru/design-patterns/catalog"),
+          link("O'Reilly — Design Patterns: Elements of Reusable Object-Oriented Software", "https://www.oreilly.com/library/view/design-patterns-elements/0201633612/")
+        ]),
+            topic("Поведенческие (Behavioral)", `![Схема поведенческих паттернов](/assets/diagrams/patterns/behavioral.svg)
+
+## Что это
+Поведенческие паттерны описывают, как объекты взаимодействуют во времени: кто выбирает алгоритм, кто отправляет команду, кто реагирует на событие, кто меняет состояние и кто координирует поток действий.
+
+## Когда они нужны
+- Когда длинный \`if/switch\` начинает определять поведение всей системы.
+- Когда один и тот же сценарий должен исполняться разными способами в зависимости от данных или окружения.
+- Когда код разрастается из-за сигналов, callbacks, очередей или событий.
+
+## Что обычно сюда относят
+Strategy выносит выбор алгоритма наружу. Command превращает действие в объект. Observer связывает источник события с подписчиками. State прячет переключение состояний внутри доменной модели. Chain of Responsibility хорошо ложится на последовательные проверки. Mediator убирает прямую сетку связей между объектами.
+
+## Практический ориентир
+Поведенческий паттерн особенно полезен, когда важен не только результат, но и *маршрут выполнения*. Если алгоритм меняется чаще, чем сам домен, или если объекты слишком много знают друг о друге, это знак искать более явную форму коммуникации. Тут выигрывает код, в котором решение видно сразу, а не расползлось по ветвям условной логики.
+
+## Что запомнить
+- Поведенческие паттерны делают взаимодействие более явным и тестируемым.
+- Они помогают вынести изменение поведения из \`if/switch\` в отдельные роли.
+- Если поведение одно и не меняется, паттерн обычно лишний.`, [
+          link("Refactoring Guru — Behavioral patterns", "https://refactoring.guru/design-patterns/behavioral-patterns"),
+          link("Refactoring Guru — Design patterns catalog", "https://refactoring.guru/design-patterns/catalog"),
+          link("O'Reilly — Design Patterns: Elements of Reusable Object-Oriented Software", "https://www.oreilly.com/library/view/design-patterns-elements/0201633612/")
+        ]),
+            topic("Правила применения", `![Когда паттерн оправдан](/assets/diagrams/patterns/rules.svg)
+
+## Что это
+Паттерн нужен не потому, что он *известный*, а потому что он снижает стоимость изменений. Если у задачи нет повторяемости, вариативности или реальной боли, лишняя абстракция быстро становится балластом.
+
+## Хорошие сигналы
+- Есть несколько похожих сценариев, которые различаются одной осью поведения.
+- Уже появился дублирующийся код вокруг создания, композиции или выбора алгоритма.
+- Тестировать или расширять текущий код становится ощутимо дороже.
+
+## Плохие сигналы
+- Вариант пока один, и он вряд ли изменится.
+- Паттерн вводится ради “архитектурной правильности”, а не ради конкретной боли.
+- Абстракция появляется раньше фактов и заставляет читать лишние слои без выигрыша.
+
+## Практическое правило
+Сначала назови повторяемую проблему, потом покажи, где именно будет точка расширения, и только после этого вводи паттерн. Если ты не можешь объяснить, какую будущую вариативность он защищает, скорее всего, его ещё рано добавлять.
+
+## Что запомнить
+- Паттерн - это инструмент управления изменением, а не украшение кода.
+- Самая частая ошибка - абстракция без доказанной повторяемости.
+- Лучше простой код сегодня, чем сложный “на вырост” без реальной нагрузки.`, [
+          link("Refactoring Guru — Design patterns catalog", "https://refactoring.guru/design-patterns/catalog"),
+          link("Refactoring Guru — Design patterns", "https://refactoring.guru/design-patterns"),
+          link("O'Reilly — Design Patterns: Elements of Reusable Object-Oriented Software", "https://www.oreilly.com/library/view/design-patterns-elements/0201633612/")
+        ])
     ]
   },  {
     id: "ddd", title: "DDD (Domain-Driven Design)", icon: "&#9673;", color: "violet",
     rows: [
-      topic("Aggregate", article({
-        what: "Aggregate — это группа связанных объектов с одной точкой входа через aggregate root. Только root разрешает менять внутреннее состояние.",
-        problem: "Он удерживает инварианты внутри границы модели и не даёт внешнему коду менять дочерние сущности напрямую.",
-        how: "Практически это означает, что внешний код должен просить `Order` добавить строку, подтвердить заказ или отменить его, а не ковырять список `_lines` напрямую. Тогда правила вроде `quantity > 0` или `не больше 10 строк` живут в одном месте.",
-        code: `
-public sealed class Order
-{
-    private readonly List<OrderLine> _lines = new();
+            topic("Aggregate", `## Что это
+Aggregate — это кластер доменных объектов с одной точкой входа через root. Снаружи его воспринимают как единицу согласованности: если меняется что-то внутри, это делается через root.
 
-    public IReadOnlyCollection<OrderLine> Lines => _lines.AsReadOnly();
+![Граница агрегата](/assets/diagrams/ddd/aggregate-boundary.svg)
 
-    public void AddLine(Guid productId, int quantity)
-    {
-        if (quantity <= 0)
-            throw new InvalidOperationException("Quantity must be greater than zero.");
+## Практика
+- Загружайте и сохраняйте агрегат как целое.
+- Дочерние entity не должны менять себя в обход root.
+- Ссылки на другие агрегаты держите по \`Id\`, а не через живые объекты.
 
-        if (_lines.Count >= 10)
-            throw new InvalidOperationException("Too many lines.");
+## Зачем это нужно
+Так проще удерживать инварианты: например, лимит строк заказа, статус перехода или сумму, которая должна быть пересчитана в одном месте.`, [
+          link("Martin Fowler — DDD Aggregate", "https://martinfowler.com/bliki/DDD_Aggregate.html"),
+          link("Microsoft Learn — microservice domain model", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/net-core-microservice-domain-model"),
+          link("Microsoft Learn — domain model validations", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/domain-model-layer-validations")
+        ]),
+            topic("Entity", `## Что это
+Entity — объект с устойчивой identity. Поля могут меняться, но объект остаётся тем же, пока не изменился \`Id\`.
 
-        _lines.Add(new OrderLine(productId, quantity));
-    }
-}
-        `,
-        important: [
-          "Граница агрегата определяется инвариантами, а не количеством классов.",
-          "Если дочерние сущности можно свободно менять снаружи, агрегат перестаёт защищать модель."
-        ]
-      })),
-      topic("Entity", article({
-        what: "Entity — это объект с идентичностью. Его равенство определяется не набором полей, а стабильным `Id`.",
-        problem: "Это позволяет отслеживать жизненный цикл объекта, даже когда остальные данные меняются со временем.",
-        code: `
-public sealed class User : IEquatable<User>
-{
-    public Guid Id { get; }
-    public string Name { get; private set; }
+![Entity и Value Object](/assets/diagrams/ddd/entity-vs-value-object.svg)
 
-    public User(Guid id, string name)
-    {
-        Id = id;
-        Name = name;
-    }
+## Практика
+- Равенство entity обычно строится на \`Id\`, а не на всех полях.
+- У entity должны быть методы, которые проводят изменения через правила.
+- Если объект нужен только как значение, лучше сделать его Value Object.
 
-    public bool Equals(User? other) => other is not null && Id == other.Id;
-    public override int GetHashCode() => Id.GetHashCode();
-}
-        `
-      })),
-      topic("Value Object", article({
-        what: "Value Object не имеет собственной идентичности и сравнивается по значениям всех полей. Обычно он неизменяемый.",
-        problem: "Так мелкие бизнес-концепции вроде денег, email или адреса не расползаются по коду в виде сырых строк и чисел.",
-        code: `
-public sealed record Money(decimal Amount, string Currency)
-{
-    public Money Add(Money other)
-    {
-        if (Currency != other.Currency)
-            throw new InvalidOperationException("Currencies must match.");
+## Как читать модель
+Entity полезна там, где важны история, жизненный цикл и ссылка на конкретный экземпляр: заказ, пользователь, счёт, договор.`, [
+          link("Martin Fowler — Evans Classification", "https://martinfowler.com/bliki/EvansClassification.html"),
+          link("Martin Fowler — Domain Driven Design", "https://martinfowler.com/bliki/DomainDrivenDesign.html"),
+          link("Microsoft Learn — microservice domain model", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/net-core-microservice-domain-model")
+        ]),
+            topic("Value Object", `## Что это
+Value Object описывает значение, а не личность. Два объекта с одинаковыми значимыми полями считаются равными; обычно такой объект неизменяемый.
 
-        return new Money(Amount + other.Amount, Currency);
-    }
-}
-        `
-      })),
-      topic("Repository", article({
-        what: "Repository даёт приложению доступ к агрегатам через доменную абстракцию, а не через детали хранения.",
-        problem: "Это позволяет менять способ хранения, не переписывая use cases и доменную модель.",
-        how: "Снаружи use case видит операции уровня модели: `GetByIdAsync`, `AddAsync`, `ExistsAsync`. Всё, что касается `Include`, SQL, индексов и materialization, прячется в инфраструктурной реализации репозитория.",
-        code: `
-public interface IOrderRepository
-{
-    Task<Order?> GetByIdAsync(Guid id, CancellationToken ct);
-}
+![Entity и Value Object](/assets/diagrams/ddd/entity-vs-value-object.svg)
 
-public sealed class OrderRepository : IOrderRepository
-{
-    private readonly AppDbContext _db;
+## Практика
+- Создавайте новый объект вместо частичной мутации.
+- Делайте сравнение по всем существенным полям.
+- Хорошие примеры: \`Money\`, \`Email\`, \`DateRange\`, \`Address\`.
 
-    public Task<Order?> GetByIdAsync(Guid id, CancellationToken ct) =>
-        _db.Orders.SingleOrDefaultAsync(x => x.Id == id, ct);
-}
-        `,
-        important: [
-          "Repository нужен для работы с агрегатами, а не как универсальная обёртка над каждой таблицей.",
-          "Чем сильнее наружу течёт EF Core-специфика, тем слабее реальная абстракция репозитория."
-        ]
-      })),
-      topic("Domain Service", article({
-        what: "Domain Service содержит бизнес-логику, которая не принадлежит одной конкретной entity или value object.",
-        problem: "Он не даёт запихивать сложные правила в application-слой только потому, что для них нет очевидного владельца в домене.",
-        code: `
-public sealed class OrderPricingService
-{
-    public decimal CalculateTotal(IEnumerable<OrderLine> lines, decimal discountRate)
-    {
-        var subtotal = lines.Sum(x => x.Quantity * x.UnitPrice);
-        return subtotal - subtotal * discountRate;
-    }
-}
-        `
-      })),
-      topic("Application Service", article({
-        what: "Application Service или handler координирует use case: загружает агрегат, вызывает доменные методы, сохраняет изменения и публикует интеграционные действия.",
-        problem: "Это отделяет оркестрацию сценария от самих бизнес-правил и от транспортного слоя.",
-        code: `
-public sealed class ConfirmOrderHandler
-{
-    private readonly IOrderRepository _orders;
-    private readonly IUnitOfWork _unitOfWork;
+## Почему это удобно
+Value Object убирает расплывчатые строки и числа из домена и делает правила явными, особенно когда нужно валидировать формат, валюту или диапазон.`, [
+          link("Martin Fowler — Value Object", "https://martinfowler.com/bliki/ValueObject.html"),
+          link("Martin Fowler — Value Object in PoEAA", "https://martinfowler.com/eaaCatalog/valueObject.html"),
+          link("Microsoft Learn — implement value objects", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/implement-value-objects")
+        ]),
+            topic("Repository", `## Что это
+Repository — коллекция агрегатов с доменным интерфейсом. Он прячет способ хранения и даёт коду ощущение работы с памятью, а не с БД.
 
-    public async Task Handle(Guid orderId, CancellationToken ct)
-    {
-        var order = await _orders.GetByIdAsync(orderId, ct)
-            ?? throw new InvalidOperationException("Order was not found.");
+![Поток Repository](/assets/diagrams/ddd/repository-flow.svg)
 
-        order.Confirm();
-        await _unitOfWork.SaveChangesAsync(ct);
-    }
-}
-        `
-      })),
-      topic("Domain Event и реализация", article({
-        what: "Domain Event фиксирует важный факт в домене: заказ создан, оплата подтверждена, лимит превышен. Сам event ничего не делает, а только сообщает о случившемся.",
-        problem: "Это ослабляет связанность между частями системы и позволяет реагировать на доменные изменения независимо.",
-        how: "Сначала агрегат поднимает событие как факт, а потом обработчики уже решают, что с этим делать: отправить письмо, обновить read model, запустить интеграцию. Особенно полезно это становится вместе с outbox, когда событие нужно надёжно доставить наружу.",
-        code: `
-public sealed record OrderPaid(Guid OrderId, decimal Amount);
+## Практика
+- Определяйте repository на уровне aggregate root.
+- Не тащите наружу SQL, \`Include\`, \`DbContext\` и другие детали маппинга.
+- Пусть repository возвращает доменные объекты или спецификации, а не таблицы.
 
-public sealed class SendReceiptOnOrderPaid : INotificationHandler<OrderPaid>
-{
-    private readonly IEmailSender _emailSender;
+## На что смотреть
+Если repository начинает выглядеть как универсальный CRUD-сервис для всего подряд, граница домена уже размывается.`, [
+          link("Martin Fowler — Repository", "https://martinfowler.com/eaaCatalog/repository.html"),
+          link("Microsoft Learn — persistence layer design", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/infrastructure-persistence-layer-design"),
+          link("Microsoft Learn — EF Core persistence layer", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/infrastructure-persistence-layer-implementation-entity-framework-core")
+        ]),
+            topic("Domain Service", `## Что это
+Domain Service нужен для доменной операции, у которой нет естественного владельца среди entity или value object. Это должна быть именно бизнес-операция, а не просто удобная функция.
 
-    public SendReceiptOnOrderPaid(IEmailSender emailSender)
-    {
-        _emailSender = emailSender;
-    }
+![Domain service](/assets/diagrams/ddd/domain-service.svg)
 
-    public Task Handle(OrderPaid notification, CancellationToken ct) =>
-        _emailSender.SendAsync("customer@demo.local", "Order paid", ct);
-}
-        `,
-        important: [
-          "Domain event описывает случившийся факт, а не команду на выполнение действия.",
-          "Чем меньше отправитель знает о подписчиках, тем проще расширять систему без каскада изменений."
-        ]
-      })),
-      topic("Layers (в контексте DDD)", article({
-        what: "В DDD слои обычно читаются так: `Domain` формулирует правила, `Application` собирает use cases, `Infrastructure` реализует интерфейсы, `Presentation` принимает вход.",
-        problem: "Так проще удержать границы: домен не зависит от EF Core и HTTP, а внешний код не принимает решения за модель.",
-        code: `
-public interface ICurrentUser
-{
-    Guid UserId { get; }
-}
+## Практика
+- Делайте service stateless.
+- Держите в нём правило, а не поток управления use case.
+- Хорошие примеры: расчёт цены, маршрутизация, проверка политики перевода между объектами.
 
-public sealed class CreateInvoiceHandler
-{
-    private readonly ICurrentUser _currentUser;
+## Антипаттерн
+Если логика просто потому, что не нашли место для неё, часто лучше вернуть её в entity или value object, чем раздувать слой сервисов.`, [
+          link("Martin Fowler — Evans Classification", "https://martinfowler.com/bliki/EvansClassification.html"),
+          link("Martin Fowler — Anemic Domain Model", "https://martinfowler.com/bliki/AnemicDomainModel.html"),
+          link("Martin Fowler — Service Layer", "https://martinfowler.com/eaaCatalog/serviceLayer.html")
+        ]),
+            topic("Application Service", `## Что это
+Application Service координирует сценарий: загрузить агрегат, вызвать доменные методы, сохранить изменения и отдать результат. Он тонкий и не должен содержать бизнес-правил.
 
-    public CreateInvoiceHandler(ICurrentUser currentUser)
-    {
-        _currentUser = currentUser;
-    }
-}
-        `
-      })),
-      topic("Границы транзакций агрегатов", article({
-        what: "Обычно одна транзакция должна изменять один aggregate root. Для взаимодействия между агрегатами используют события и eventual consistency.",
-        problem: "Это не даёт монолиту превращаться в большую распределённую транзакцию с хрупкими блокировками и сильной связанностью.",
-        code: `
-public sealed class Order : AggregateRoot
-{
-    public void Confirm()
-    {
-        Raise(new OrderConfirmed(Id));
-    }
-}
+![Application service](/assets/diagrams/ddd/application-service.svg)
 
-public sealed class ReserveInventoryOnOrderConfirmed : INotificationHandler<OrderConfirmed>
-{
-    public async Task Handle(OrderConfirmed notification, CancellationToken ct)
-    {
-        var inventory = await _inventory.GetByOrderIdAsync(notification.OrderId, ct);
-        inventory.Reserve();
-        await _unitOfWork.SaveChangesAsync(ct);
-    }
-}
-        `
-      }))
+## Практика
+- Весь оркестратор держите в одном месте: transaction, repo, mapper, integration events.
+- Правила и инварианты оставляйте домену.
+- Используйте его как слой use case, а не как место для всей логики приложения.
+
+## Хороший признак
+Если application service можно читать как сценарий на естественном языке, а не как свалку if/else, он, скорее всего, на месте.`, [
+          link("Microsoft Learn — microservice application layer via Web API", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/microservice-application-layer-implementation-web-api"),
+          link("Microsoft Learn — DDD-oriented microservice", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/ddd-oriented-microservice"),
+          link("Martin Fowler — Service Layer", "https://martinfowler.com/eaaCatalog/serviceLayer.html")
+        ]),
+            topic("Domain Event и реализация", `## Что это
+Domain Event — это факт, который уже произошёл в домене: заказ создан, оплата подтверждена, лимит превышен. Он описывает событие, а не команду.
+
+![Поток domain event](/assets/diagrams/ddd/domain-event-flow.svg)
+
+## Практика
+- Поднимайте event внутри агрегата, когда меняется важное состояние.
+- Обработчики должны реагировать отдельно: письмо, read model, интеграция.
+- Не превращайте event в скрытый второй канал для основной бизнес-логики.
+
+## Важное различие
+In-process domain event и integration event — не одно и то же. Первый живёт внутри bounded context, второй нужен для общения между контекстами.`, [
+          link("Microsoft Learn — domain events design and implementation", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/domain-events-design-implementation"),
+          link("Microsoft Learn — DDD-oriented microservice", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/ddd-oriented-microservice"),
+          link("Martin Fowler — Domain Driven Design", "https://martinfowler.com/bliki/DomainDrivenDesign.html")
+        ]),
+            topic("Layers (в контексте DDD)", `## Что это
+В DDD слои — это прежде всего направление зависимостей: Presentation -> Application -> Domain, а Infrastructure подключается снаружи и зависит от домена, а не наоборот.
+
+![DDD layers](/assets/diagrams/ddd/ddd-layers.svg)
+
+## Практика
+- Домен не должен знать про EF Core, HTTP и фреймворк UI.
+- Application слой координирует сценарии и переводит вход в команды.
+- Infrastructure реализует репозитории, хранилища и внешние адаптеры.
+
+## Смысл
+Слои нужны не ради папок в проекте, а ради ясной зависимости и удобной замены внешних деталей.`, [
+          link("Microsoft Learn — DDD-oriented microservice", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/ddd-oriented-microservice"),
+          link("Martin Fowler — Layering Principles", "https://martinfowler.com/bliki/LayeringPrinciples.html"),
+          link("Martin Fowler — Presentation Domain Data Layering", "https://martinfowler.com/bliki/PresentationDomainDataLayering.html")
+        ]),
+            topic("Границы транзакций агрегатов", `## Что это
+Обычно одна транзакция охватывает один aggregate root. Если нужно изменить несколько агрегатов, лучше связывать их через events и eventual consistency, а не склеивать в одну огромную транзакцию.
+
+![Границы транзакций](/assets/diagrams/ddd/transaction-boundaries.svg)
+
+## Практика
+- Не расширяйте transaction boundary только потому, что это проще в коде.
+- Если доменные правила касаются нескольких агрегатов, подумайте о domain event или process manager.
+- Там, где нужна атомарность, задачу, скорее всего, надо пересмотреть на уровне модели.
+
+## Что запомнить
+Граница агрегата и граница транзакции почти всегда идут вместе. Если они начинают расходиться, модель пора проверять.`, [
+          link("Martin Fowler — DDD Aggregate", "https://martinfowler.com/bliki/DDD_Aggregate.html"),
+          link("Microsoft Learn — domain model validations", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/domain-model-layer-validations"),
+          link("Microsoft Learn — domain events design and implementation", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/domain-events-design-implementation")
+        ])
     ]
   },  {
     id: "efcore", title: "EF Core", icon: "&#9107;", color: "blue",
     rows: [
-      topic("Миграции", article({
-        what: "Миграции описывают эволюцию схемы БД как код и позволяют синхронно развивать модель и структуру таблиц.",
-        problem: "Они убирают ручное редактирование схемы на серверах и дают воспроизводимый способ обновлять БД между окружениями.",
-        how: "Обычный поток такой: поменяли модель или конфигурацию EF Core, сгенерировали миграцию, посмотрели получившийся код и SQL, после чего применили её на окружении. То есть миграция — это не магия EF, а версия схемы, которую можно ревьюить как обычный код.",
-        code: `
-public partial class AddOrderStatus : Migration
-{
-    protected override void Up(MigrationBuilder migrationBuilder)
-    {
-        migrationBuilder.AddColumn<string>(
-            name: "Status",
-            table: "Orders",
-            type: "nvarchar(32)",
-            nullable: false,
-            defaultValue: "Draft");
-    }
-}
-        `,
-        important: [
-          "Миграции должны быть воспроизводимыми и понятными без ручных действий на сервере.",
-          "Полезно смотреть не только на C#-код миграции, но и на SQL, который она реально создаёт."
-        ]
-      }), [link("docs — миграции", "https://learn.microsoft.com/ru-ru/ef/core/managing-schemas/migrations/")]),
-      topic("Миграции как сырой SQL", article({
-        what: "Сырой SQL в миграции нужен там, где Fluent API не умеет выразить конкретное DDL или сложное преобразование данных.",
-        problem: "Это позволяет безопасно описывать нестандартные индексы, backfill данных и vendor-specific операции прямо в версии схемы.",
-        code: `
-protected override void Up(MigrationBuilder migrationBuilder)
-{
-    migrationBuilder.Sql(@"
-        UPDATE Orders
-        SET Status = 'Completed'
-        WHERE PaidOnUtc IS NOT NULL;
-    ");
-}
-        `
-      })),
-      topic("Скрипты CI", article({
-        what: "В CI/CD миграции часто превращают в идемпотентный SQL-скрипт и применяют отдельно от деплоя приложения.",
-        problem: "Так команда может ревьюить реальный SQL, а пайплайн не зависит от запуска `dotnet ef` на боевой машине.",
-        code: `
-public sealed class MigrationScriptExporter
-{
-    private readonly IMigrator _migrator;
+            topic("Миграции", `<img src="/assets/diagrams/efcore/migrations-pipeline.svg" alt="Поток миграций" style="max-width:100%;height:auto;display:block;margin:12px 0;border:1px solid rgba(255,255,255,0.08);border-radius:12px;background:#0b1020" />
 
-    public MigrationScriptExporter(IMigrator migrator)
-    {
-        _migrator = migrator;
-    }
+Миграции в EF Core - это не просто папка с файлами, а история изменения модели. EF сравнивает текущую модель с последним <code>ModelSnapshot</code>, а база помнит факт применения в <code>__EFMigrationsHistory</code>.
 
-    public string Export() =>
-        _migrator.GenerateScript(options: MigrationsSqlGenerationOptions.Idempotent);
-}
-        `
-      })),
-      topic("CRUD + транзакции", article({
-        what: "EF Core сам оборачивает один `SaveChanges()` в транзакцию, а для нескольких шагов можно открыть транзакцию явно.",
-        problem: "Это нужно, когда бизнес-операция должна либо целиком записаться в несколько таблиц, либо не записаться вовсе.",
-        code: `
-await using var transaction = await db.Database.BeginTransactionAsync(ct);
+Хорошая последовательность почти всегда одна и та же: сгенерировать миграцию, прочитать код, затем применить ее. Для production лучше сначала получить SQL-скрипт или bundle, чтобы увидеть DDL до запуска.
 
-db.Orders.Add(order);
-db.OutboxMessages.Add(message);
+- snapshot отвечает за diff
+- history table отвечает за уже примененные миграции
+- отдельный шаг применения делает схему безопаснее
+`, [
+          link("Migrations overview", "https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/"),
+          link("Applying migrations", "https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/applying"),
+          link("Custom migrations history table", "https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/history-table")
+        ]),
+            topic("Миграции как сырой SQL", `Иногда встроенных операций EF Core недостаточно: нужно перенести данные между колонками, создать view, trigger, stored procedure или выполнить пакет, который EF не умеет выразить напрямую.
 
-await db.SaveChangesAsync(ct);
-await transaction.CommitAsync(ct);
-        `
-      }), [link("docs — транзакции", "https://learn.microsoft.com/ru-ru/ef/core/saving/transactions")]),
-      topic("Модели отношений", article({
-        what: "Отношения в EF Core описывают связи между сущностями: один-к-одному, один-ко-многим и многие-ко-многим.",
-        problem: "Явная конфигурация отношений помогает избежать неправильных внешних ключей, каскадов и неожиданного SQL.",
-        code: `
-modelBuilder.Entity<Order>(builder =>
-{
-    builder.HasMany(x => x.Lines)
-        .WithOne()
-        .HasForeignKey(x => x.OrderId)
-        .OnDelete(DeleteBehavior.Cascade);
-});
-        `
-      }), [link("docs — relationships", "https://learn.microsoft.com/ru-ru/ef/core/modeling/relationships")]),
-      topic("Варианты хранения подсущности", article({
-        what: "Подсущность можно хранить как `Owned Type`, отдельную таблицу или иерархию наследования, в зависимости от её жизненного цикла и границы агрегата.",
-        problem: "Это помогает не раздувать схему и при этом не терять выразительность доменной модели.",
-        code: `
-modelBuilder.Entity<Customer>().OwnsOne(x => x.Address, owned =>
-{
-    owned.Property(x => x.City).HasColumnName("City");
-    owned.Property(x => x.Street).HasColumnName("Street");
-    owned.Property(x => x.ZipCode).HasColumnName("ZipCode");
-});
-        `
-      })),
-      topic("Сложные свойства (Value Conversions)", article({
-        what: "`Value Conversion` преобразует доменный тип в значение, которое реально хранится в БД, и обратно.",
-        problem: "Это позволяет использовать enum-подобные объекты, value objects и сложные типы без утечки инфраструктурных примитивов в домен.",
-        code: `
-builder.Property(x => x.Status)
-    .HasConversion(
-        value => value.Name,
-        value => OrderStatus.FromName(value));
-        `
-      }), [link("docs — value conversions", "https://learn.microsoft.com/ru-ru/ef/core/modeling/value-conversions")]),
-      topic("PK: составной ключ", article({
-        what: "Составной ключ строится из нескольких колонок и часто используется для join-таблиц или сущностей, чья уникальность определяется комбинацией полей.",
-        problem: "Он не позволяет сохранить дубликаты там, где одного `Id` недостаточно для выражения уникальности.",
-        code: `
-modelBuilder.Entity<OrderItem>(builder =>
-{
-    builder.HasKey(x => new { x.OrderId, x.ProductId });
-});
-        `
-      })),
-      topic("Кластерный индекс (MSSQL)", article({
-        what: "В SQL Server кластерный индекс определяет физический порядок строк в таблице. По умолчанию им часто становится первичный ключ.",
-        problem: "Явная настройка помогает выбрать индекс, который лучше подходит под реальные сценарии чтения и записи.",
-        code: `
-modelBuilder.Entity<Order>(builder =>
-{
-    builder.HasKey(x => x.Id).IsClustered(false);
-    builder.HasIndex(x => x.CreatedOnUtc).IsClustered();
-});
-        `
-      })),
-      topic("HiLo генерация ключей", article({
-        what: "HiLo выдаёт приложению диапазоны идентификаторов из БД, чтобы не ходить за новым ключом на каждый insert.",
-        problem: "Это уменьшает количество round-trip в БД и позволяет знать `Id` сущности ещё до сохранения.",
-        code: `
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(
-        connectionString,
-        sql => sql.UseHiLo("entity_hilo")));
-        `
-      }), [link("docs — generated properties", "https://learn.microsoft.com/ru-ru/ef/core/modeling/generated-properties")]),
-      topic("Concurrency Tokens", article({
-        what: "Concurrency token помогает обнаружить, что запись успел изменить кто-то ещё между чтением и сохранением.",
-        problem: "Так приложение не перетирает чужие изменения молча и может корректно отреагировать на конфликт.",
-        code: `
-modelBuilder.Entity<Order>()
-    .Property(x => x.RowVersion)
-    .IsRowVersion();
+Тогда на сцену выходит <code>migrationBuilder.Sql()</code>. Он хорош для маленьких, явных и проверяемых вставок SQL внутри миграции. Если конкретная операция не может жить внутри транзакции, EF позволяет отключить транзакционную обертку через <code>suppressTransaction: true</code>.
 
-try
-{
-    await db.SaveChangesAsync(ct);
-}
-catch (DbUpdateConcurrencyException)
-{
-    throw new InvalidOperationException("Order was changed by another user.");
-}
-        `
-      }), [link("docs — concurrency", "https://learn.microsoft.com/ru-ru/ef/core/saving/concurrency")]),
-      topic("Tracking vs No-Tracking", article({
-        what: "С tracking EF Core следит за изменениями сущностей, а `AsNoTracking()` читает данные без накладных расходов на change tracker.",
-        problem: "Это позволяет ускорять read-only запросы и не держать в памяти лишние графы объектов.",
-        how: "Для списков, отчётов и read model почти всегда лучше `AsNoTracking()`. Для сценария изменения сущность обычно читают с tracking, меняют состояние в памяти и затем вызывают `SaveChanges()`, чтобы EF сам собрал нужный `UPDATE`.",
-        code: `
-var readModel = await db.Orders
-    .AsNoTracking()
-    .Select(x => new OrderListItem(x.Id, x.Number, x.TotalAmount))
-    .ToListAsync(ct);
+Главное правило здесь простое: raw SQL должен оставаться точечным инструментом, а не способом переписать всю миграцию вручную.
+`, [
+          link("Custom migrations operations", "https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/operations"),
+          link("Managing migrations", "https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/managing")
+        ]),
+            topic("Скрипты CI", `Для CI/CD миграции лучше превращать в SQL-скрипт, а не применять напрямую с машины разработчика. Так проверка и выкладка разделяются: скрипт можно просмотреть, прогнать в pipeline, передать DBA и архивировать отдельно.
 
-var order = await db.Orders.SingleAsync(x => x.Id == orderId, ct);
-order.Cancel();
-await db.SaveChangesAsync(ct);
-        `,
-        important: [
-          "Не включай tracking по привычке во все запросы подряд: это часто лишняя нагрузка.",
-          "Если нужен только DTO-результат, доменные сущности и change tracker обычно не нужны."
-        ]
-      }), [link("docs — tracking", "https://learn.microsoft.com/ru-ru/ef/core/querying/tracking")]),
-      topic("Загрузка связанных данных", article({
-        what: "Связанные данные можно загружать заранее через `Include`, вручную через explicit loading или лениво через lazy loading.",
-        problem: "Правильный способ загрузки помогает не получить `N+1`, лишний SQL и перегруженные графы объектов.",
-        code: `
-var order = await db.Orders
-    .Include(x => x.Lines)
-    .SingleAsync(x => x.Id == orderId, ct);
+Именно поэтому EF Core рекомендует генерировать script в production-процессе и, когда состояние баз может отличаться, делать его идемпотентным. Это особенно полезно, если у вас несколько окружений или часть миграций уже была применена вручную.
 
-await db.Entry(order)
-    .Collection(x => x.Payments)
-    .LoadAsync(ct);
-        `
-      }), [link("docs — related data", "https://learn.microsoft.com/ru-ru/ef/core/querying/related-data/")]),
-      topic("Split Queries", article({
-        what: "`AsSplitQuery()` разбивает один тяжёлый `Include`-запрос на несколько SQL-запросов и потом собирает результат в памяти.",
-        problem: "Это помогает избежать cartesian explosion, когда одна большая выборка дублирует строки из-за нескольких коллекций.",
-        code: `
-var orders = await db.Orders
-    .Include(x => x.Lines)
-    .Include(x => x.Tags)
-    .AsSplitQuery()
-    .ToListAsync(ct);
-        `
-      }), [link("docs — split queries", "https://learn.microsoft.com/ru-ru/ef/core/querying/single-split-queries")]),
-      topic("Функции базы данных", article({
-        what: "EF Core умеет маппить C#-метод на SQL-функцию, чтобы вызывать серверную логику прямо из LINQ.",
-        problem: "Это нужно, когда вычисление должно выполняться в БД и обычный LINQ не умеет выразить нужную функцию.",
-        code: `
-public static class DbFunctionsExtensions
-{
-    public static int DateDiffDay(DateTime start, DateTime end) =>
-        throw new NotSupportedException();
-}
+Типовой набор выглядит так: создать script, проверить его на staging, и только потом запускать в production.`, [
+          link("Applying migrations", "https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/applying"),
+          link("Managing migrations", "https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/managing"),
+          link("Custom migrations history table", "https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/history-table")
+        ]),
+            topic("CRUD + транзакции", `По умолчанию EF Core уже делает многое за вас: один вызов <code>SaveChanges()</code> выполняется в транзакции, и если что-то падает, база не остается в полусостоянии.
 
-modelBuilder.HasDbFunction(
-    typeof(DbFunctionsExtensions).GetMethod(nameof(DbFunctionsExtensions.DateDiffDay))!);
-        `
-      }), [link("docs — db functions", "https://learn.microsoft.com/ru-ru/ef/core/querying/database-functions")]),
-      topic("Отслеживание изменений", article({
-        what: "Change tracker хранит исходные значения сущности и решает, какие `INSERT/UPDATE/DELETE` надо отправить при сохранении.",
-        problem: "Понимание tracker нужно, чтобы не делать лишние обновления и правильно работать с detached-сущностями.",
-        code: `
-var entry = db.Entry(order);
-entry.Property(x => x.Status).IsModified = true;
+Явная транзакция нужна, когда несколько операций должны быть атомарны вместе: два <code>SaveChanges()</code>, плюс чтение, плюс raw SQL, плюс дополнительная проверка. В этом случае вы управляете границей вручную через <code>Database.BeginTransactionAsync()</code>.
 
-if (db.ChangeTracker.HasChanges())
-{
-    await db.SaveChangesAsync(ct);
-}
-        `
-      }), [link("docs — change tracking", "https://learn.microsoft.com/ru-ru/ef/core/change-tracking/")]),
-      topic("Получить SQL текст запроса", article({
-        what: "`ToQueryString()` показывает SQL, который EF Core собирается выполнить для текущего LINQ-запроса.",
-        problem: "Это помогает быстро понять, почему запрос медленный, какие join'ы построились и какие параметры вообще участвуют.",
-        code: `
-var query = db.Orders
-    .Where(x => x.Status == OrderStatus.Pending)
-    .Select(x => new { x.Id, x.Number });
+Важная оговорка: явные транзакции плохо сочетаются с retrying execution strategies, поэтому такие сценарии стоит тестировать на реальном провайдере.
+`, [
+          link("Transactions", "https://learn.microsoft.com/en-us/ef/core/saving/transactions"),
+          link("DbContext lifetime and configuration", "https://learn.microsoft.com/en-us/ef/core/dbcontext-configuration/")
+        ]),
+            topic("Модели отношений", `<img src="/assets/diagrams/efcore/relationships-map.svg" alt="Карта отношений" style="max-width:100%;height:auto;display:block;margin:12px 0;border:1px solid rgba(255,255,255,0.08);border-radius:12px;background:#0b1020" />
 
-var sql = query.ToQueryString();
-logger.LogInformation(sql);
-        `
-      })),
-      topic("Тестирование с EF Core", article({
-        what: "Для интеграционных тестов лучше использовать SQLite in-memory или контейнер с реальной БД, а не полностью искусственный провайдер.",
-        problem: "Так тесты ближе к настоящему SQL и ловят проблемы маппинга, транзакций и ограничений схемы.",
-        code: `
-await using var connection = new SqliteConnection("DataSource=:memory:");
-await connection.OpenAsync();
+Отношения в EF Core строятся вокруг foreign key: один конец является principal, другой - dependent. В модели это выражается через навигации, <code>HasForeignKey</code> и при необходимости <code>HasPrincipalKey</code>.
 
-var options = new DbContextOptionsBuilder<AppDbContext>()
-    .UseSqlite(connection)
-    .Options;
+Практически это означает три вещи: кардинальность задает форму связи, FK держит ссылку, а навигация делает граф удобным для кода. Многие проблемы с отношениями исчезают, когда эти три слоя не смешиваются между собой.
 
-await using var db = new AppDbContext(options);
-await db.Database.EnsureCreatedAsync();
-        `
-      }), [link("docs — testing", "https://learn.microsoft.com/ru-ru/ef/core/testing/")]),
-      topic("Проблемы производительности", article({
-        what: "Основные проблемы производительности в EF Core: `N+1`, избыточные `Include`, отсутствие индексов, tracking overhead и тяжёлые проекции сущностей.",
-        problem: "Осознанная форма запроса позволяет читать ровно те данные, которые реально нужны конкретному экрану или API.",
-        code: `
-var items = await db.Orders
-    .AsNoTracking()
-    .Where(x => x.Status == OrderStatus.Pending)
-    .Select(x => new OrderListItem(x.Id, x.Number, x.TotalAmount))
-    .ToListAsync(ct);
-        `
-      }), [link("docs — performance", "https://learn.microsoft.com/ru-ru/ef/core/performance/")]),
-      topic("Параллелизм в APP слое", article({
-        what: "Один `DbContext` нельзя использовать из нескольких потоков одновременно. Для параллельных операций нужен отдельный контекст на каждую задачу.",
-        problem: "Это защищает от гонок состояния внутри change tracker и ошибок вида `A second operation was started on this context`.",
-        code: `
-var ordersTask = LoadOrdersAsync(factory, ct);
-var customersTask = LoadCustomersAsync(factory, ct);
+Для DDD-мышления полезно помнить: отношение принадлежит модели, а не только таблице. Хорошая настройка отношений помогает и в запросах, и в инвариантах агрегата.
+`, [
+          link("Relationships overview", "https://learn.microsoft.com/en-us/ef/core/modeling/relationships"),
+          link("Foreign and principal keys in relationships", "https://learn.microsoft.com/en-us/ef/core/modeling/relationships/foreign-and-principal-keys"),
+          link("Relationship navigations", "https://learn.microsoft.com/en-us/ef/core/modeling/relationships/navigations")
+        ]),
+            topic("Варианты хранения подсущности", `<img src="/assets/diagrams/efcore/owned-types-storage.svg" alt="Варианты хранения owned type" style="max-width:100%;height:auto;display:block;margin:12px 0;border:1px solid rgba(255,255,255,0.08);border-radius:12px;background:#0b1020" />
 
-await Task.WhenAll(ordersTask, customersTask);
+Подсущность или value object можно хранить по-разному: в той же таблице, в отдельной таблице или, в современных версиях EF Core, даже в JSON-колонке. Базовое поведение для owned types - table splitting, то есть данные владельца и owned-объекта живут в одной таблице.
 
-static async Task<List<Order>> LoadOrdersAsync(IDbContextFactory<AppDbContext> factory, CancellationToken ct)
-{
-    await using var db = await factory.CreateDbContextAsync(ct);
-    return await db.Orders.AsNoTracking().ToListAsync(ct);
-}
-        `
-      }))
+Отдельная таблица нужна, когда у части модели появляется свой жизненный цикл, свои ограничения или она слишком разрастается по ширине. JSON-колонка хорошо подходит там, где структура часто меняется и при этом остается логически вложенной.
+
+Хорошее правило выбора: если у объекта нет самостоятельной идентичности и он не должен жить отдельно от владельца, начинайте с owned type.
+`, [
+          link("Owned entity types", "https://learn.microsoft.com/en-us/ef/core/modeling/owned-entities"),
+          link("What's New in EF Core 7.0", "https://learn.microsoft.com/en-us/ef/core/what-is-new/ef-core-7.0/whatsnew")
+        ]),
+            topic("Сложные свойства (Value Conversions)", `<img src="/assets/diagrams/efcore/value-conversion-flow.svg" alt="Поток value conversion" style="max-width:100%;height:auto;display:block;margin:12px 0;border:1px solid rgba(255,255,255,0.08);border-radius:12px;background:#0b1020" />
+
+<code>ValueConversion</code> переводит доменный тип в то, что провайдер реально умеет хранить: enum в string, value object в JSON или bytes, специальный идентификатор в число и т.д. EF Core принимает две функции - в базу и обратно - и сам вставляет их в pipeline чтения/записи.
+
+Но есть важная деталь: если тип mutable или хранится как коллекция, почти всегда нужен <code>ValueComparer</code>. Без него EF может неправильно решать, поменялось значение или нет.
+
+Для этой темы полезно держать в голове простую формулу: converter отвечает за форму хранения, comparer - за корректное сравнение в памяти.
+`, [
+          link("Value conversions", "https://learn.microsoft.com/en-us/ef/core/modeling/value-conversions"),
+          link("Value comparers", "https://learn.microsoft.com/en-us/ef/core/modeling/value-comparers"),
+          link("Change detection and notifications", "https://learn.microsoft.com/en-us/ef/core/change-tracking/change-detection")
+        ]),
+            topic("PK: составной ключ", `Составной ключ нужен тогда, когда уникальность естественно описывается несколькими полями вместе: например, <code>State + LicensePlate</code> или ключ join-таблицы.
+
+В EF Core составной ключ задается явно через <code>HasKey(x =&gt; new { ... })</code>. Порядок полей важен, потому что он должен совпасть с порядком ключа в схеме базы.
+
+Хороший ориентир такой: если ключ нужен только для связки и не несет бизнес-смысла, он может быть составным. Если же у сущности есть отдельная идентичность, лучше дать ей простой суррогатный ключ.
+`, [
+          link("Keys", "https://learn.microsoft.com/en-us/ef/core/modeling/keys"),
+          link("Foreign and principal keys in relationships", "https://learn.microsoft.com/en-us/ef/core/modeling/relationships/foreign-and-principal-keys")
+        ]),
+            topic("Кластерный индекс (MSSQL)", `В SQL Server clustered index определяет физический порядок строк. У таблицы может быть только один clustered index, а primary key по умолчанию обычно получает именно такую реализацию, если вы явно не выбрали другое.
+
+В EF Core SQL Server provider это можно управлять через <code>IsClustered()</code>. Идея здесь не в магии ORM, а в том, что правильный порядок хранения может заметно ускорить чтение, но иногда осложняет запись и перестройку индексов.
+
+Если clustered index приходится ставить не на ключ, а на другой столбец, это нужно делать осознанно: быстрое чтение по этому полю должно перевешивать цену на insert/update.
+`, [
+          link("SQL Server provider indexes", "https://learn.microsoft.com/en-us/ef/core/providers/sql-server/indexes"),
+          link("Create a clustered index - SQL Server", "https://learn.microsoft.com/en-us/sql/relational-databases/indexes/create-clustered-indexes"),
+          link("Efficient querying", "https://learn.microsoft.com/en-us/ef/core/performance/efficient-querying")
+        ]),
+            topic("HiLo генерация ключей", `HiLo стоит понимать как способ раздачи ключей блоками: приложение берет у базы не один номер, а целый диапазон, а потом использует его локально без round-trip на каждый insert. В EF Core документация чаще говорит не про отдельную магическую кнопку, а про sequences и provider value generation - это и есть тот механизм, на котором обычно строится HiLo-подобная схема.
+
+Такой подход особенно полезен, когда новые дочерние объекты должны получить ключ еще до сохранения, а лишние походы в базу нежелательны. На практике это помогает уменьшить задержку и разгрузить БД при массовых insert.
+
+Коротко: если нужна производительная генерация идентификаторов, смотрите в сторону sequence-backed value generation и провайдерных возможностей, а не только в сторону identity columns.
+`, [
+          link("Sequences", "https://learn.microsoft.com/en-us/ef/core/modeling/sequences"),
+          link("Generated values", "https://learn.microsoft.com/en-us/ef/core/modeling/generated-properties"),
+          link("SQL Server value generation", "https://learn.microsoft.com/en-us/ef/core/providers/sql-server/value-generation")
+        ]),
+            topic("Concurrency Tokens", `<img src="/assets/diagrams/efcore/concurrency-conflict.svg" alt="Конфликт конкурентного обновления" style="max-width:100%;height:auto;display:block;margin:12px 0;border:1px solid rgba(255,255,255,0.08);border-radius:12px;background:#0b1020" />
+
+Concurrency token нужен для optimistic concurrency: EF Core помнит значение, которое было прочитано, и при сохранении проверяет, не изменил ли строку кто-то еще. Если проверка не проходит, вы получаете <code>DbUpdateConcurrencyException</code>.
+
+Обычно это решается через <code>rowversion</code> или другой токен версии. После конфликта приложение либо перезагружает данные и повторяет попытку, либо показывает пользователю явный конфликт и просит принять решение.
+
+Это особенно полезно там, где несколько операторов или процессов могут редактировать одну и ту же запись одновременно.
+`, [
+          link("Handling concurrency conflicts", "https://learn.microsoft.com/en-us/ef/core/saving/concurrency"),
+          link("Generated values", "https://learn.microsoft.com/en-us/ef/core/modeling/generated-properties"),
+          link("SQL Server value generation", "https://learn.microsoft.com/en-us/ef/core/providers/sql-server/value-generation")
+        ]),
+            topic("Tracking vs No-Tracking", `<img src="/assets/diagrams/efcore/tracking-vs-notracking.svg" alt="Tracking versus no-tracking" style="max-width:100%;height:auto;display:block;margin:12px 0;border:1px solid rgba(255,255,255,0.08);border-radius:12px;background:#0b1020" />
+
+Tracking query полезен, когда результат будет изменяться и возвращаться в <code>SaveChanges</code>. EF Core держит экземпляр в change tracker, делает identity resolution и умеет аккуратно применить изменения к базе.
+
+<code>AsNoTracking()</code> лучше подходит для чистых read-only сценариев: список, отчет, API projection, экран поиска. Такой запрос обычно легче и быстрее, потому что не нужно строить состояние для изменения.
+
+Если нужен компромисс, есть <code>AsNoTrackingWithIdentityResolution()</code>: чтение остается без tracking, но одинаковые сущности не размножаются в результате.
+`, [
+          link("Tracking vs. no-tracking queries", "https://learn.microsoft.com/en-us/ef/core/querying/tracking"),
+          link("Change tracking in EF Core", "https://learn.microsoft.com/en-us/ef/core/change-tracking/"),
+          link("Efficient querying", "https://learn.microsoft.com/en-us/ef/core/performance/efficient-querying")
+        ]),
+            topic("Загрузка связанных данных", `<img src="/assets/diagrams/efcore/loading-strategies.svg" alt="Стратегии загрузки связанных данных" style="max-width:100%;height:auto;display:block;margin:12px 0;border:1px solid rgba(255,255,255,0.08);border-radius:12px;background:#0b1020" />
+
+У EF Core есть три базовые стратегии: eager, explicit и lazy loading. Eager loading через <code>Include</code> удобен, когда форма графа известна заранее. Explicit loading через <code>Entry(...).LoadAsync()</code> хорош, когда связь нужна только в отдельных ветках кода. Lazy loading через proxies или <code>ILazyLoader</code> удобно, но легко приводит к скрытому N+1.
+
+Правильный выбор обычно определяется не вкусом, а характером сценария: если связь почти всегда нужна, грузите сразу; если нужна редко, грузите явно; если совсем лениво - включайте lazy loading очень осознанно.
+`, [
+          link("Eager loading of related data", "https://learn.microsoft.com/en-us/ef/core/querying/related-data/eager"),
+          link("Explicit loading of related data", "https://learn.microsoft.com/en-us/ef/core/querying/related-data/explicit"),
+          link("Lazy loading of related data", "https://learn.microsoft.com/en-us/ef/core/querying/related-data/lazy")
+        ]),
+            topic("Split Queries", `<img src="/assets/diagrams/efcore/split-query-vs-single.svg" alt="Single query versus split query" style="max-width:100%;height:auto;display:block;margin:12px 0;border:1px solid rgba(255,255,255,0.08);border-radius:12px;background:#0b1020" />
+
+<code>AsSplitQuery()</code> ломает один большой JOIN-запрос на несколько более мелких SQL-запросов. Это помогает избежать cartesian explosion и лишнего дублирования больших столбцов, когда вы тянете несколько коллекций через <code>Include</code>.
+
+Цена у подхода тоже есть: несколько round-trip'ов вместо одного и потенциальные нюансы консистентности, если данные меняются между запросами. Поэтому split query - не универсально "лучше", а лучше именно для определенного класса проблем.
+
+Хорошее правило: если видите большой граф и рост строк на JOIN-ах, посмотрите в сторону split queries.
+`, [
+          link("Single vs. split queries", "https://learn.microsoft.com/en-us/ef/core/querying/single-split-queries"),
+          link("Eager loading of related data", "https://learn.microsoft.com/en-us/ef/core/querying/related-data/eager"),
+          link("What's New in EF Core 5.0", "https://learn.microsoft.com/en-us/ef/core/what-is-new/ef-core-5.0/whatsnew")
+        ]),
+            topic("Функции базы данных", `Если бизнес-логика уже живет в SQL-функции, EF Core может подключиться к ней через <code>HasDbFunction</code>. Это полезно, когда у вас есть проверенная серверная логика и вы хотите вызывать ее из LINQ, а не переписывать в C#.
+
+При этом стоит помнить границу: если выражение можно нормально написать в LINQ - лучше написать его в LINQ. SQL-функции хороши как мост к существующей БД-логике, а не как замена всему query layer.
+
+Если нужна совсем произвольная SQL-форма, тогда уже смотрят в сторону <code>FromSql</code> и <code>SqlQuery</code>.
+`, [
+          link("User-defined function mapping", "https://learn.microsoft.com/en-us/ef/core/querying/user-defined-function-mapping"),
+          link("SQL Queries", "https://learn.microsoft.com/en-us/ef/core/querying/sql-queries")
+        ]),
+            topic("Отслеживание изменений", `<img src="/assets/diagrams/efcore/change-tracker-states.svg" alt="Состояния change tracker" style="max-width:100%;height:auto;display:block;margin:12px 0;border:1px solid rgba(255,255,255,0.08);border-radius:12px;background:#0b1020" />
+
+Change tracker - это сердце update pipeline в EF Core. Он хранит состояние сущности, ее original values и решает, что именно отправить в базу: insert, update или delete.
+
+На практике важны четыре вещи: tracked entities живут внутри short-lived <code>DbContext</code>, <code>DetectChanges()</code> находит изменения, <code>EntityState</code> показывает состояние, а value comparer помогает корректно сравнивать сложные или mutable типы.
+
+Если сущностей очень много, change detection может стать заметным по времени, но для большинства приложений это все еще нормальный и очень удобный default.
+`, [
+          link("Change tracking in EF Core", "https://learn.microsoft.com/en-us/ef/core/change-tracking/"),
+          link("Change detection and notifications", "https://learn.microsoft.com/en-us/ef/core/change-tracking/change-detection"),
+          link("Value comparers", "https://learn.microsoft.com/en-us/ef/core/modeling/value-comparers")
+        ]),
+            topic("Получить SQL текст запроса", `Когда надо понять, во что EF Core превратил ваш LINQ, самый удобный инструмент - <code>ToQueryString()</code>. Он показывает SQL до выполнения и помогает быстро увидеть, не распух ли запрос или не уехала ли фильтрация не туда.
+
+<code>LogTo()</code> отвечает уже за runtime-диагностику: показывает реальные команды и время выполнения. В паре они закрывают два разных вопроса: "что EF сгенерировал?" и "что реально ушло в базу?".
+
+Если запрос неожиданно медленный, сначала посмотрите на SQL, потом на количество round-trip'ов, а уже потом на микротюнинг.
+`, [
+          link("What's New in EF Core 5.0", "https://learn.microsoft.com/en-us/ef/core/what-is-new/ef-core-5.0/whatsnew"),
+          link("Performance diagnosis", "https://learn.microsoft.com/en-us/ef/core/performance/performance-diagnosis"),
+          link("SQL Queries", "https://learn.microsoft.com/en-us/ef/core/querying/sql-queries")
+        ]),
+            topic("Тестирование с EF Core", `Для тестов лучше не подменять реальную БД полностью фиктивной. EF Core прямо предупреждает, что <code>InMemory</code> provider не подходит для production и даже для части тестов часто дает ложное чувство уверенности.
+
+Более надежный путь - SQLite in-memory или вообще реальный provider, если вам важны поведение SQL, транзакции и провайдерные особенности. Если же нужно именно изолировать бизнес-логику, часто лучше вынести EF Core за репозиторий и тестировать его отдельно.
+
+Главная мысль простая: тест должен проверять то, что вы реально собираетесь запускать в production, а не только красивую имитацию запроса.
+`, [
+          link("Choosing a testing strategy", "https://learn.microsoft.com/en-us/ef/core/testing/choosing-a-testing-strategy"),
+          link("Testing without your Production Database System", "https://learn.microsoft.com/en-us/ef/core/testing/testing-without-the-database"),
+          link("In-memory database provider", "https://learn.microsoft.com/en-us/ef/core/providers/in-memory/")
+        ]),
+            topic("Проблемы производительности", `На performance-профиле EF Core почти всегда всплывают одни и те же вещи: лишние столбцы, слишком широкие JOIN-ы, <code>N+1</code>, отсутствие индексов и слишком большой tracking overhead.
+
+Полезный порядок проверки такой: сначала projection и фильтры, потом количество запросов, потом split query или eager loading, потом индексы и, только если действительно нужно, уход в raw SQL. EF Core performance docs прямо советуют смотреть на форму запроса, а не только на ORM.
+
+Если запросы логируются, неожиданные round-trip'ы видно сразу - это часто самый быстрый способ поймать реальную причину тормозов.
+`, [
+          link("Efficient querying", "https://learn.microsoft.com/en-us/ef/core/performance/efficient-querying"),
+          link("Performance diagnosis", "https://learn.microsoft.com/en-us/ef/core/performance/performance-diagnosis")
+        ]),
+            topic("Параллелизм в APP слое", `<img src="/assets/diagrams/efcore/parallel-dbcontext.svg" alt="Параллельные операции и DbContext" style="max-width:100%;height:auto;display:block;margin:12px 0;border:1px solid rgba(255,255,255,0.08);border-radius:12px;background:#0b1020" />
+
+<code>DbContext</code> не потокобезопасен. Это означает, что один и тот же экземпляр нельзя использовать для нескольких параллельных операций: нужно дождаться завершения одного async-вызова, прежде чем начинать следующий.
+
+Если в application layer нужна параллельность, создавайте отдельный <code>DbContext</code> для каждой задачи через scope или <code>IDbContextFactory&lt;TContext&gt;</code>. Так вы сохраняете и корректность, и читаемую границу unit of work.
+
+Хорошее правило: параллелить можно работу, но не один и тот же context instance.
+`, [
+          link("DbContext lifetime, configuration, and initialization", "https://learn.microsoft.com/en-us/ef/core/dbcontext-configuration/"),
+          link("Asynchronous programming", "https://learn.microsoft.com/en-us/ef/core/miscellaneous/async")
+        ])
     ]
   },  {
     id: "webapi", title: "WebAPI (ASP.NET Core)", icon: "&#9656;", color: "green",
     rows: [
-      topic("Configure() vs ConfigureServices()", article({
-        what: "В старом `Startup` метод `ConfigureServices()` регистрировал зависимости, а `Configure()` собирал HTTP-пайплайн. В современном .NET это делает `Program.cs`.",
-        problem: "Понимание этого разделения помогает не путать регистрацию сервисов и порядок выполнения middleware.",
-        how: "Проще запомнить так: сначала мы описываем, какие сервисы умеет создавать контейнер DI, а потом собираем pipeline из middleware и endpoint'ов. В минимальном hosting-моделе эти две части стоят рядом, но смысл разделения остаётся тем же.",
-        code: `
-var builder = WebApplication.CreateBuilder(args);
+            topic("Configure() vs ConfigureServices()", `![Поток запуска](/assets/diagrams/webapi/startup-pipeline.svg)
 
-builder.Services.AddControllers();
+## Идея
+В классическом ASP.NET Core деление очень простое: **ConfigureServices** собирает DI-контейнер, а **Configure** строит HTTP-пайплайн. В минимальном хостинге это же деление читается как **builder.Services** и **app.Use(...)**.
 
-var app = builder.Build();
-app.MapControllers();
-app.Run();
-        `,
-        important: [
-          "Регистрация сервисов и порядок middleware — это две разные оси конфигурации приложения.",
-          "Даже в `Program.cs` полезно мысленно разделять настройку DI и настройку HTTP-конвейера."
-        ]
-      }), [link("docs — startup", "https://learn.microsoft.com/ru-ru/aspnet/core/fundamentals/startup")]),
-      topic("Кастомный Middleware", article({
-        what: "Middleware — это шаг в HTTP-конвейере, который может читать запрос, менять ответ и решать, передавать ли выполнение дальше.",
-        problem: "Собственный middleware нужен для сквозной логики вроде корреляции, логирования, headers, rate limiting или tenant resolution.",
-        how: "Запрос проходит по pipeline сверху вниз, а ответ возвращается назад. Поэтому middleware может сделать что-то до `await next(context)` и что-то после него. Это хороший инструмент для сквозных вещей, которые не должны дублироваться в каждом controller или endpoint.",
-        code: `
-public sealed class RequestIdMiddleware
-{
-    public async Task InvokeAsync(HttpContext context, RequestDelegate next)
-    {
-        context.Response.Headers["X-Request-Id"] = Guid.NewGuid().ToString();
-        await next(context);
-    }
-}
-        `,
-        important: [
-          "Middleware должен заниматься поперечной логикой, а не принимать бизнес-решения за use case.",
-          "Порядок регистрации middleware важен: от него зависит, кто кого оборачивает."
-        ]
-      }), [link("docs — middleware", "https://learn.microsoft.com/ru-ru/aspnet/core/fundamentals/middleware/")]),
-      topic("HttpContext.Response events", article({
-        what: "`OnStarting` срабатывает перед отправкой заголовков, а `OnCompleted` — когда ответ уже полностью ушёл клиенту.",
-        problem: "Это даёт безопасные точки для добавления headers, финального логирования и post-response cleanup.",
-        code: `
-app.Use(async (context, next) =>
-{
-    context.Response.OnStarting(() =>
-    {
-        context.Response.Headers["X-App-Version"] = "1.0";
-        return Task.CompletedTask;
-    });
+## Практика
+Сначала регистрируем сервисы, потом собираем middleware и endpoints. Так проще держать в голове границу между конфигурацией инфраструктуры и обработкой запроса.
 
-    context.Response.OnCompleted(() =>
-    {
-        Console.WriteLine("Response completed");
-        return Task.CompletedTask;
-    });
+## Что запомнить
+- сервисы живут выше маршрутизации;
+- порядок middleware важен;
+- DI сначала, pipeline потом.`, [
+          link("Startup in ASP.NET Core", "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/startup?view=aspnetcore-9.0"),
+          link("Service lifetimes (dependency injection)", "https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection/service-lifetimes"),
+          link("Developing ASP.NET Core MVC apps", "https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/develop-asp-net-core-mvc-apps")
+        ]),
+            topic("Кастомный Middleware", `![Пайплайн middleware](/assets/diagrams/webapi/middleware-pipeline.svg)
 
-    await next();
-});
-        `
-      }), [link("docs — HttpResponse", "https://learn.microsoft.com/ru-ru/dotnet/api/microsoft.aspnetcore.http.httpresponse")]),
-      topic("Kestrel WebHost", article({
-        what: "Kestrel — встроенный веб-сервер ASP.NET Core. Он принимает HTTP-трафик сам или работает за reverse proxy.",
-        problem: "Знание настройки Kestrel нужно для управления портами, протоколами, HTTPS и лимитами соединений.",
-        code: `
-var builder = WebApplication.CreateBuilder(args);
+## Идея
+Кастомный middleware — это маленький участник конвейера: он получает HttpContext, делает работу до и после следующего шага и при необходимости останавливает цепочку.
 
-builder.WebHost.ConfigureKestrel(options =>
-{
-    options.ListenAnyIP(8080);
-});
-        `
-      }), [link("docs — Kestrel", "https://learn.microsoft.com/ru-ru/aspnet/core/fundamentals/servers/kestrel")]),
-      topic("KestrelServerOptions: Limits", article({
-        what: "Лимиты Kestrel позволяют ограничить размер тела запроса, количество соединений и таймауты на чтение заголовков.",
-        problem: "Это помогает защитить приложение от слишком тяжёлых или зависших запросов ещё до входа в бизнес-логику.",
-        code: `
-builder.WebHost.ConfigureKestrel(options =>
-{
-    options.Limits.MaxConcurrentConnections = 500;
-    options.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(15);
-    options.Limits.MaxRequestBodySize = 10 * 1024 * 1024;
-});
-        `
-      })),
-      topic("Метрики Kestrel: KestrelEventSource", article({
-        what: "`KestrelEventSource` публикует события сервера, которые можно читать через `EventListener`, `dotnet-counters` и другие диагностические инструменты.",
-        problem: "Это помогает увидеть проблемы на уровне соединений и очередей, когда обычных application-логов уже недостаточно.",
-        code: `
-public sealed class KestrelMetricsListener : EventListener
-{
-    protected override void OnEventSourceCreated(EventSource eventSource)
-    {
-        if (eventSource.Name == "Microsoft-AspNetCore-Server-Kestrel")
-            EnableEvents(eventSource, EventLevel.Informational);
-    }
+## Практика
+Хороший middleware делает одну вещь: логирование, auth, корреляцию, rate limit, трейсинг, заголовки или преобразование ответа. Если нужны scoped-зависимости, удобнее использовать фабричную активацию или IMiddleware.
 
-    protected override void OnEventWritten(EventWrittenEventArgs eventData)
-    {
-        Console.WriteLine(eventData.EventName);
-    }
-}
-        `
-      }), [link("docs — Kestrel diagnostics", "https://learn.microsoft.com/ru-ru/aspnet/core/fundamentals/servers/kestrel/diagnostics")]),
-      topic("Formatters для MVC", article({
-        what: "Formatter отвечает за сериализацию входа и выхода в MVC: JSON, XML или свой кастомный формат.",
-        problem: "Он нужен, когда API должно принимать или отдавать данные не только в стандартном `application/json`.",
-        code: `
-builder.Services
-    .AddControllers()
-    .AddXmlSerializerFormatters()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-    });
-        `
-      }), [link("docs — formatting", "https://learn.microsoft.com/ru-ru/aspnet/core/web-api/advanced/formatting")]),
-      topic("Форсирование формата ObjectResult", article({
-        what: "Иногда API должно жёстко вернуть конкретный `Content-Type`, независимо от negotiation или заголовка `Accept`.",
-        problem: "Это полезно для обратной совместимости, специальных endpoint'ов и внешних клиентов с фиксированным форматом ответа.",
-        code: `
-[HttpGet("/report")]
-public IActionResult Get()
-{
-    return new ObjectResult(new { Status = "ok" })
-    {
-        ContentTypes = { "application/json" }
-    };
-}
-        `
-      })),
-      topic("HealthChecks", article({
-        what: "Health checks позволяют приложению сообщать, что оно живо и готово обслуживать трафик.",
-        problem: "Оркестратор и мониторинг получают простой способ понять, можно ли направлять запросы в конкретный экземпляр сервиса.",
-        code: `
-builder.Services.AddHealthChecks()
-    .AddCheck<SqlHealthCheck>("sql");
+## Что запомнить
+- порядок регистрации определяет поведение;
+- терминальный Run не вызывает следующий шаг;
+- после старта ответа заголовки менять поздно.`, [
+          link("Middleware in ASP.NET Core", "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/middleware?view=aspnetcore-9.0"),
+          link("Middleware activation and lifetime", "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/middleware/extensibility?view=aspnetcore-9.0"),
+          link("HttpResponse.HasStarted", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.httpresponse.hasstarted?view=aspnetcore-10.0")
+        ]),
+            topic("HttpContext.Response events", `![Жизненный цикл ответа](/assets/diagrams/webapi/request-lifecycle.svg)
 
-app.MapHealthChecks("/health");
+## Идея
+OnStarting и OnCompleted задают границы ответа: до первого байта можно менять заголовки, после завершения — чистить ресурсы, закрывать метрики и логировать итог.
 
-public sealed class SqlHealthCheck : IHealthCheck
-{
-    public Task<HealthCheckResult> CheckHealthAsync(
-        HealthCheckContext context,
-        CancellationToken cancellationToken = default) =>
-        Task.FromResult(HealthCheckResult.Healthy());
-}
-        `
-      }), [link("docs — health checks", "https://learn.microsoft.com/ru-ru/aspnet/core/host-and-deploy/health-checks")]),
-      topic("Swagger (OpenAPI)", article({
-        what: "Swagger/OpenAPI генерирует контракт API и удобный UI для просмотра и ручных вызовов endpoint'ов.",
-        problem: "Это упрощает интеграции, документацию и проверку того, что приложение действительно публикует наружу.",
-        code: `
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+## Практика
+Это удобно для correlation-id, cookie, audit log и аккуратного teardown. Если ответ уже начал уходить, заголовки трогать нельзя, поэтому сначала смотрят HasStarted.
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-        `
-      }), [link("docs — Swagger", "https://learn.microsoft.com/ru-ru/aspnet/core/tutorials/getting-started-with-swashbuckle")]),
-      topic("Время жизни контроллера", article({
-        what: "Контроллер создаётся на запрос и обычно воспринимается как transient-объект, который безопасно получает scoped-зависимости.",
-        problem: "Понимание lifetime важно, чтобы не хранить состояние запроса в singleton-сервисах и не ловить проблемы с `DbContext`.",
-        code: `
-builder.Services.AddDbContext<OrderDbContext>();
+## Что запомнить
+- OnStarting — последний безопасный момент для заголовков;
+- OnCompleted — хороший слот для cleanup;
+- обработка должна быть быстрой и без блокировок.`, [
+          link("HttpResponse API", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.httpresponse?view=aspnetcore-10.0"),
+          link("HttpResponse.OnStarting", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.httpresponse.onstarting?view=aspnetcore-10.0"),
+          link("HttpResponse.OnCompleted", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.httpresponse.oncompleted?view=aspnetcore-10.0")
+        ]),
+            topic("Kestrel WebHost", `![Схема Kestrel](/assets/diagrams/webapi/kestrel-stack.svg)
 
-public sealed class OrdersController : ControllerBase
-{
-    private readonly OrderDbContext _db;
+## Идея
+Kestrel — встроенный кроссплатформенный HTTP-сервер ASP.NET Core. Он может работать напрямую или за reverse proxy, а приложение настраивает либо сам сервер, либо хост, который его запускает.
 
-    public OrdersController(OrderDbContext db)
-    {
-        _db = db;
-    }
-}
-        `
-      })),
-      topic("FromService, FromRoute и др.", article({
-        what: "Атрибуты биндинга явно показывают, откуда берётся каждое значение: из маршрута, query string, заголовка, тела или DI.",
-        problem: "Это делает endpoint предсказуемым и убирает магию, когда ASP.NET Core сам угадывает источник данных.",
-        code: `
-[HttpPost("/orders/{id:guid}")]
-public async Task<IActionResult> Confirm(
-    [FromRoute] Guid id,
-    [FromHeader(Name = "X-Tenant")] string tenantId,
-    [FromBody] ConfirmOrderRequest request,
-    [FromServices] ConfirmOrderHandler handler,
-    CancellationToken ct)
-{
-    await handler.Handle(new ConfirmOrderCommand(id, tenantId, request.Comment), ct);
-    return NoContent();
-}
-        `
-      }), [link("docs — model binding", "https://learn.microsoft.com/ru-ru/aspnet/core/mvc/models/model-binding")]),
-      topic("ModelBinding", article({
-        what: "Model binding превращает HTTP-данные в параметры action или готовые объекты запроса.",
-        problem: "Кастомный binder нужен, когда вход нельзя корректно выразить стандартными типами и конвертерами.",
-        code: `
-public sealed class OrderIdBinder : IModelBinder
-{
-    public Task BindModelAsync(ModelBindingContext context)
-    {
-        var raw = context.ValueProvider.GetValue(context.ModelName).FirstValue;
+## Практика
+Важно помнить две вещи: Kestrel обрабатывает сетевой трафик, а middleware уже живёт выше него. Поэтому порты, сертификаты, HTTP/2, HTTP/3 и proxy-сценарии настраиваются в зоне Kestrel или host config, а не в контроллерах.
 
-        if (Guid.TryParse(raw, out var value))
-            context.Result = ModelBindingResult.Success(new OrderId(value));
+## Что запомнить
+- Kestrel — серверный край приложения;
+- за proxy он всё равно остаётся тем, кто обслуживает запросы;
+- лимиты и диагностика тоже здесь.`, [
+          link("Kestrel web server in ASP.NET Core", "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/servers/kestrel?view=aspnetcore-9.0"),
+          link("When to use Kestrel with a reverse proxy", "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/servers/kestrel/when-to-use-a-reverse-proxy?view=aspnetcore-9.0"),
+          link("Developing ASP.NET Core MVC apps", "https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/develop-asp-net-core-mvc-apps")
+        ]),
+            topic("KestrelServerOptions: Limits", `![Ограничения Kestrel](/assets/diagrams/webapi/kestrel-stack.svg)
 
-        return Task.CompletedTask;
-    }
-}
-        `
-      })),
-      topic("CancellationToken в async/await", article({
-        what: "`CancellationToken` надо пробрасывать через весь стек вызовов: от контроллера до EF Core, HTTP-клиента и фоновых операций.",
-        problem: "Это позволяет быстро останавливать ненужную работу после отмены запроса и не тратить ресурсы зря.",
-        code: `
-[HttpGet("/orders/{id:guid}")]
-public Task<OrderDto> Get(Guid id, CancellationToken ct) =>
-    _service.GetAsync(id, ct);
+## Идея
+KestrelServerOptions.Limits — это не про "подкрутить пару чисел", а про защиту сервера от слишком больших запросов и чрезмерного параллелизма. Здесь живут лимиты тела запроса, строки запроса, заголовков, keep-alive, минимальной скорости и количества соединений.
 
-public Task<OrderDto> GetAsync(Guid id, CancellationToken ct) =>
-    _db.Orders
-        .Where(x => x.Id == id)
-        .Select(x => new OrderDto(x.Id, x.Number))
-        .SingleAsync(ct);
-        `
-      }))
+## Практика
+Настраивайте их осознанно: под реальные payload'ы, reverse proxy и особенности загрузки файлов. Если большой запрос нужен только в одной операции, лучше ограничить его точечно на endpoint или action, а не раздувать весь сервер.
+
+## Что запомнить
+- server-wide limits — это линия обороны;
+- per-endpoint overrides должны быть исключением;
+- лимит лучше объяснить в коде, чем ловить 413 в проде.`, [
+          link("KestrelServerOptions.Limits", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.server.kestrel.core.kestrelserveroptions.limits?view=aspnetcore-10.0"),
+          link("KestrelServerLimits.MaxRequestBodySize", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.server.kestrel.core.kestrelserverlimits.maxrequestbodysize?view=aspnetcore-9.0"),
+          link("Kestrel web server in ASP.NET Core", "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/servers/kestrel?view=aspnetcore-9.0")
+        ]),
+            topic("Метрики Kestrel: KestrelEventSource", `Kestrel публикует EventCounters, которые удобно смотреть через dotnet-counters или любой telemetry stack, понимающий EventSource. Это быстрый способ увидеть очередь соединений, текущие соединения, TLS-handshake и request queue без тяжёлого APM.
+
+## Практика
+Если растёт latency, сначала смотрят не только CPU, но и очереди Kestrel: есть ли saturation на входе, не копятся ли TLS-handshake, не забита ли request queue. Такой срез помогает понять, проблема в приложении, сети или самом сервере.
+
+## Что запомнить
+- counters — это дешёвый живой сигнал;
+- KestrelEventSource полезен до полного профилирования;
+- сначала наблюдаем очередь и соединения, потом копаем глубже.`, [
+          link("Kestrel diagnostics", "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/servers/kestrel/diagnostics?view=aspnetcore-9.0"),
+          link("Well-known EventCounters in .NET", "https://learn.microsoft.com/en-us/dotnet/core/diagnostics/available-counters"),
+          link("dotnet-counters diagnostic tool", "https://learn.microsoft.com/en-us/dotnet/core/diagnostics/dotnet-counters")
+        ]),
+            topic("Formatters для MVC", `![Content negotiation](/assets/diagrams/webapi/content-negotiation.svg)
+
+## Идея
+Форматтеры MVC разделяют две задачи: чтение входа и запись ответа. Один и тот же endpoint может принять JSON, form-data или другой формат, а вернуть то, что умеет выбранный output formatter.
+
+## Практика
+Когда API должно жить не только на JSON, форматтеры становятся точкой расширения: можно добавить XML, особый текстовый формат или собственную сериализацию. Это лучше, чем вручную конвертировать всё в контроллере.
+
+## Что запомнить
+- формат ответа выбирается по метаданным и содержимому запроса;
+- input и output форматтеры решают разные задачи;
+- ObjectResult обычно идёт через negotiation, а не через жёстко зашитый MIME type.`, [
+          link("Formatting in ASP.NET Core Web API", "https://learn.microsoft.com/en-us/aspnet/core/web-api/advanced/formatting?view=aspnetcore-9.0"),
+          link("ObjectResult class", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.objectresult?view=aspnetcore-9.0"),
+          link("FormatFilterAttribute", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.formatfilterattribute?view=aspnetcore-9.0")
+        ]),
+            topic("Форсирование формата ObjectResult", `Если negotiation слишком открытый, его можно сузить. Для endpoints, которые обязаны отдавать конкретный media type, используют ObjectResult.ContentTypes, FormatFilterAttribute или вовсе возвращают конкретный result-тип вместо выбора между несколькими форматерами.
+
+## Практика
+Это полезно, когда контракт важнее гибкости: фиксированный экспорт, версионированный media type или UI, который зависит от стабильной формы ответа. Если клиентов немного и формат известен заранее, явное решение читается лучше, чем скрытая магия.
+
+## Что запомнить
+- forcing format — это решение про контракт;
+- ContentTypes сужает выбор;
+- явный result обычно понятнее, чем неявная догадка MVC.`, [
+          link("ObjectResult.ContentTypes", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.objectresult.contenttypes?view=aspnetcore-10.0"),
+          link("FormatFilterAttribute", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.formatfilterattribute?view=aspnetcore-9.0"),
+          link("Action return types in ASP.NET Core Web API", "https://learn.microsoft.com/en-us/aspnet/core/web-api/action-return-types?view=aspnetcore-10.0")
+        ]),
+            topic("HealthChecks", `![Health checks](/assets/diagrams/webapi/healthchecks.svg)
+
+## Идея
+Health checks — это не просто 200 OK на /health. Обычно их делят на liveness и readiness, отдельно выбирают какие проверки запускать, и настраивают собственный ответ для оркестратора или балансировщика.
+
+## Практика
+В реальном приложении endpoint может проверять БД, кэш, очереди и внешние зависимости, но при этом не должен сам становиться тяжёлой проверкой. Хороший health endpoint быстрый, предсказуемый и полезный для автоматики.
+
+## Что запомнить
+- отдельный endpoint лучше размытых ping'ов;
+- теги помогают разделить readiness и liveness;
+- статус-коды и формат ответа настраиваются явно.`, [
+          link("Health checks in ASP.NET Core", "https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/health-checks?view=aspnetcore-9.0"),
+          link("MapHealthChecks", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.healthcheckendpointroutebuilderextensions.maphealthchecks?view=aspnetcore-10.0"),
+          link("UseHealthChecks", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.healthcheckapplicationbuilderextensions.usehealthchecks?view=aspnetcore-9.0")
+        ]),
+            topic("Swagger (OpenAPI)", `Swagger/OpenAPI — это контракт, из которого можно сгенерировать документацию, клиенты и тестовые сценарии. В ASP.NET Core метаданные собираются из маршрутов, типов возврата, атрибутов и XML-комментариев; Swashbuckle или встроенный OpenAPI слой лишь превращают это в удобный UI и JSON.
+
+## Практика
+Полезнее всего Swagger тогда, когда контракт поддерживается кодом: ProducesResponseType, Consumes, DTO-схемы, summaries и versioning. Тогда документация не живёт отдельно от API, а вырастает из него.
+
+## Что запомнить
+- это документация от кода, а не рядом с кодом;
+- метаданные endpoint'ов важнее красивого UI;
+- чем точнее контракт, тем меньше сюрпризов у клиентов.`, [
+          link("Include OpenAPI metadata in an ASP.NET Core app", "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/include-metadata?view=aspnetcore-10.0"),
+          link("Get started with Swashbuckle and ASP.NET Core", "https://learn.microsoft.com/en-us/aspnet/core/tutorials/getting-started-with-swashbuckle?view=aspnetcore-8.0"),
+          link("Action return types in ASP.NET Core Web API", "https://learn.microsoft.com/en-us/aspnet/core/web-api/action-return-types?view=aspnetcore-10.0")
+        ]),
+            topic("Время жизни контроллера", `Контроллер в ASP.NET Core обычно живёт в рамках одного запроса: его создаёт MVC, в него внедряются зависимости, а после ответа экземпляр больше не нужен. Поэтому состояние лучше держать в scoped-сервисах или в самом запросе, а не в полях контроллера.
+
+## Практика
+Если в контроллере хочется хранить кэш, очередь или пользовательский контекст между запросами, это почти всегда знак, что такое состояние должно жить в сервисе с подходящим lifetime. Для stateless endpoints контроллер должен оставаться тонким.
+
+## Что запомнить
+- контроллер — оркестратор, не хранилище состояния;
+- AddScoped хорошо совпадает с request scope;
+- Singleton и mutable state в контроллере почти всегда плохая идея.`, [
+          link("Service lifetimes (dependency injection)", "https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection/service-lifetimes"),
+          link("Developing ASP.NET Core MVC apps", "https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/develop-asp-net-core-mvc-apps"),
+          link("Dependency injection basics quickstart", "https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection-basics")
+        ]),
+            topic("FromService, FromRoute и др.", `![Binding sources](/assets/diagrams/webapi/model-binding.svg)
+
+## Идея
+Атрибуты FromRoute, FromQuery, FromHeader, FromBody, FromForm и FromServices убирают двусмысленность. Вместо гадания, откуда брать значение, endpoint явно говорит, какой источник нужен для каждого параметра.
+
+## Практика
+Для простых типизированных данных используйте route/query, для сложного тела запроса — body, для инфраструктурных зависимостей — services. Это особенно полезно, когда параметр может быть собран сразу из нескольких источников, а вы хотите сделать контракт читаемым.
+
+## Что запомнить
+- явный источник уменьшает магию;
+- DI-зависимость — это не часть payload;
+- FromServices хорошо читается в контроллерах и минимальных API.`, [
+          link("FromServicesAttribute", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.fromservicesattribute?view=aspnetcore-9.0"),
+          link("FromRouteAttribute", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.fromrouteattribute?view=aspnetcore-9.0"),
+          link("FromQueryAttribute", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.fromqueryattribute?view=aspnetcore-9.0")
+        ]),
+            topic("ModelBinding", `![Binding flow](/assets/diagrams/webapi/model-binding.svg)
+
+## Идея
+Model binding — это конвейер, который превращает входящие строки запроса в параметры action'ов и сложные типы. Он проходит по источникам данных, пробует сконструировать объект, а затем передаёт результат в валидацию.
+
+## Практика
+Когда binding становится неожиданным, причина обычно в неявном источнике или в несоответствии имён. Поэтому полезно держать DTO простыми, имена — стабильными, а сложные преобразования делать в отдельном слое, а не в контроллере.
+
+## Что запомнить
+- binding — это не бизнес-логика;
+- имена и типы важны не меньше маршрутов;
+- ошибки binding'а лучше ловить на границе API, а не глубже.`, [
+          link("Model binding in ASP.NET Core", "https://learn.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-9.0"),
+          link("Web API overview", "https://learn.microsoft.com/en-us/aspnet/core/web-api/?view=aspnetcore-9.0"),
+          link("Parameter binding in minimal APIs", "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/parameter-binding?view=aspnetcore-9.0")
+        ]),
+            topic("CancellationToken в async/await", `![HTTP request lifecycle](/assets/diagrams/webapi/request-lifecycle.svg)
+
+## Идея
+В WebAPI CancellationToken нужен не для красоты, а чтобы запрос мог остановить работу, если клиент ушёл или соединение оборвалось. В ASP.NET Core токен обычно приходит из HttpContext.RequestAborted и должен протекать дальше в I/O, EF Core и внешние вызовы.
+
+## Практика
+Самая полезная привычка — принимать token в handler'ах и методах репозитория как первый класс сигнала отмены. Тогда система быстрее освобождает ресурсы, не держит лишние запросы и лучше переживает пики нагрузки.
+
+## Что запомнить
+- отмена должна идти вниз по стеку;
+- игнорирование токена делает async только наполовину;
+- долгие операции без отмены — частая причина лишней нагрузки.`, [
+          link("HttpContext.RequestAborted", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.httpcontext.requestaborted?view=aspnetcore-10.0"),
+          link("Cancellation in Managed Threads", "https://learn.microsoft.com/en-us/dotnet/standard/threading/cancellation-in-managed-threads"),
+          link("Task Cancellation", "https://learn.microsoft.com/en-us/dotnet/standard/parallel-programming/task-cancellation")
+        ])
     ]
   },  {
     id: "api", title: "Разработка API", icon: "&#8644;", color: "orange",
     rows: [
-      topic("Идемпотентность", article({
-        what: "Идемпотентность означает, что повтор одного и того же запроса не создаёт новых побочных эффектов.",
-        problem: "Она нужна для безопасных ретраев клиента, сетевых сбоев и повторных отправок формы без дублей заказов и платежей.",
-        how: "Обычно клиент присылает `Idempotency-Key`, а сервер сохраняет результат первой успешной обработки. Если такой же ключ приходит повторно, сервер не создает заказ заново, а возвращает уже известный ответ. Это особенно важно для `POST`-операций, где повтор может быть дорогим.",
-        code: `
-public async Task<IResult> CreateOrder(
-    HttpContext context,
-    CreateOrderRequest request,
-    IIdempotencyStore store,
-    CancellationToken ct)
-{
-    var key = context.Request.Headers["Idempotency-Key"].ToString();
+            topic("Идемпотентность", `## Что это
+Идемпотентность означает, что повтор одного и того же запроса не меняет итог больше одного раза. Для \`GET\`, \`PUT\` и \`DELETE\` это свойство ожидается по смыслу метода, а для \`POST\` его обычно приходится проектировать отдельно.
 
-    if (await store.ExistsAsync(key, ct))
-        return Results.Ok(await store.GetResponseAsync(key, ct));
+![Схема идемпотентности](/assets/diagrams/api/idempotency.svg)
 
-    var response = new CreateOrderResponse(Guid.NewGuid());
-    await store.SaveAsync(key, response, ct);
+## Когда это важно
+Сетевые ретраи, повторная отправка формы, двойной клик, повтор webhook и сбой между записью в БД и ответом клиенту.
 
-    return Results.Created("/orders/" + response.OrderId, response);
-}
-        `,
-        important: [
-          "Идемпотентность полезна там, где повторный запрос может создать деньги, заказ или другое нежелательное дублирование.",
-          "Ключ идемпотентности должен быть связан не только с фактом повтора, но и с тем же самым бизнес-запросом."
-        ]
-      }), [link("Habr — идемпотентность (Яндекс)", "https://habr.com/ru/company/yandex/blog/442762/")]),
-      topic("Корректные HTTP статус коды", article({
-        what: "Статус-код должен отражать реальный результат операции: найден ресурс или нет, создан он или обновлён, проблема у клиента или у сервера.",
-        problem: "Корректные коды делают API понятным для клиентов и помогают автоматике правильно обрабатывать ошибки.",
-        code: `
-[HttpGet("/orders/{id:guid}")]
-public async Task<ActionResult<OrderDto>> Get(Guid id, CancellationToken ct)
-{
-    var order = await _service.GetAsync(id, ct);
-    return order is null ? NotFound() : Ok(order);
-}
+## Как делать на практике
+- Выделяйте натуральный ключ операции: номер заказа, внешний idempotency key, correlation id.
+- Храните результат первой успешной обработки и возвращайте его повторным запросам.
+- Если операция создаёт ресурс, привязывайте повтор к тому же URI или к тому же ключу дедупликации.
+- Для асинхронных операций возвращайте \`202 Accepted\`, если реальный результат будет позже.
 
-[HttpPost("/orders")]
-public async Task<IActionResult> Create(CreateOrderRequest request, CancellationToken ct)
-{
-    var id = await _service.CreateAsync(request, ct);
-    return CreatedAtAction(nameof(Get), new { id }, null);
-}
-        `
-      })),
-      topic("Отдача статики отдельно", article({
-        what: "Статику лучше отдавать через CDN или специализированный сервер, а API должен возвращать только ссылки на ресурсы.",
-        problem: "Так application server не тратит CPU и соединения на раздачу тяжёлых файлов, а кэширование работает эффективнее.",
-        code: `
-public sealed class AssetUrlBuilder
-{
-    private readonly string _cdnBaseUrl;
+## Что помнить
+- Ретраи без идемпотентности опасны.
+- Идемпотентность нужна не только для API, но и для интеграций между сервисами.`, [
+          link("Azure API Design - Idempotent operations", "https://learn.microsoft.com/en-us/azure/architecture/microservices/design/api-design"),
+          link("RFC 9110 - HTTP Semantics", "https://www.rfc-editor.org/rfc/rfc9110"),
+          link("Idempotency-Key HTTP header draft", "https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header")
+        ]),
+            topic("Корректные HTTP статус коды", `## Что это
+Статус-код должен говорить правду о результате операции: создан ресурс, запрос принят в работу, входные данные плохие, ресурс уже существует, нужна аутентификация или произошла внутренняя ошибка.
 
-    public AssetUrlBuilder(IOptions<StaticAssetsOptions> options)
-    {
-        _cdnBaseUrl = options.Value.BaseUrl.TrimEnd('/');
-    }
+## Практический ориентир
+- \`200\`, \`201\`, \`204\` для успешных сценариев.
+- \`202\` когда работа принята, но завершится позже.
+- \`400\` для невалидного запроса, \`401\` для отсутствующей аутентификации, \`403\` для запрета, \`404\` если ресурса нет, \`409\` при конфликте состояния, \`415\` если тип тела неподходящий.
+- Для машинного описания ошибки возвращайте \`application/problem+json\` по RFC 9457.
 
-    public string Build(string path) =>
-        _cdnBaseUrl + "/" + path.TrimStart('/');
-}
-        `
-      })),
-      topic("API Gateway", article({
-        what: "API Gateway стоит перед внутренними сервисами и берёт на себя маршрутизацию, аутентификацию, лимиты и общие политики.",
-        problem: "Он снимает инфраструктурную нагрузку с бизнес-сервисов и даёт единый вход для внешних клиентов.",
-        code: `
-builder.Services.AddReverseProxy().LoadFromMemory(
-    [
-        new RouteConfig
-        {
-            RouteId = "orders",
-            ClusterId = "backend",
-            Match = new RouteMatch { Path = "/api/orders/{**catch-all}" }
-        }
-    ],
-    [
-        new ClusterConfig
-        {
-            ClusterId = "backend",
-            Destinations = new Dictionary<string, DestinationConfig>
-            {
-                ["d1"] = new() { Address = "https://orders.internal/" }
-            }
-        }
-    ]);
+## Что не делать
+Не прятать ошибки в \`200 OK\`, не отдавать \`500\` для ожидаемых бизнес-конфликтов и не выбирать статус на глаз. Чем точнее код, тем проще ретраи, клиентская логика и мониторинг.`, [
+          link("RFC 9110 - HTTP Semantics", "https://www.rfc-editor.org/rfc/rfc9110"),
+          link("RFC 9457 - Problem Details for HTTP APIs", "https://www.rfc-editor.org/rfc/rfc9457"),
+          link("Azure API Design - response status codes", "https://learn.microsoft.com/en-us/azure/architecture/best-practices/api-design")
+        ]),
+            topic("Отдача статики отдельно", `## Что это
+Статические файлы лучше отдавать не через бизнес-эндпоинты, а отдельным путём, CDN или edge layer. API должен концентрироваться на данных и командах, а не на доставке картинок, JS и CSS.
 
-app.MapReverseProxy();
-        `
-      }), [link("docs — API Gateway pattern", "https://learn.microsoft.com/ru-ru/azure/architecture/microservices/design/gateway")]),
-      topic("Кэширование", article({
-        what: "Кэширование сохраняет часто используемый результат ближе к приложению или клиенту, чтобы не ходить за ним каждый раз в БД.",
-        problem: "Это снижает задержки и разгружает самые дорогие источники данных.",
-        code: `
-app.MapGet("/products/{id:guid}", async (
-    Guid id,
-    IDistributedCache cache,
-    ProductDbContext db,
-    CancellationToken ct) =>
-{
-    var cacheKey = "product:" + id;
-    var cached = await cache.GetStringAsync(cacheKey, ct);
+## Почему так
+- Снижается нагрузка на API-процесс и БД.
+- У статических файлов проще выставить длинный \`Cache-Control\`, \`immutable\`, \`ETag\` и CDN-политику.
+- Внешний мир получает стабильные URL, а backend остаётся свободным для изменений.
+- В ASP.NET Core это обычно делают через \`UseStaticFiles\` или \`MapStaticAssets\`, а не через контроллеры.
 
-    if (cached is not null)
-        return Results.Content(cached, "application/json");
+## Хорошая схема
+\`app\` выдаёт данные и ссылки, а статику обслуживает отдельный static host, Front Door или CDN. Если нужен доступ вне \`wwwroot\`, лучше явно настроить отдельный static path, чем смешивать его с API.`, [
+          link("ASP.NET Core static files", "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/static-files?view=aspnetcore-9.0"),
+          link("Azure Front Door caching", "https://learn.microsoft.com/en-us/azure/frontdoor/front-door-caching"),
+          link("RFC 9111 - HTTP Caching", "https://www.rfc-editor.org/rfc/rfc9111")
+        ]),
+            topic("API Gateway", `## Что это
+API Gateway - единая точка входа перед внутренними сервисами. Он маршрутизирует запросы, скрывает внутреннюю топологию и держит на себе общие обязанности: auth, throttling, caching, observability и aggregation.
 
-    var dto = await db.Products
-        .Where(x => x.Id == id)
-        .Select(x => new ProductDto(x.Id, x.Name))
-        .SingleAsync(ct);
+![Схема API Gateway](/assets/diagrams/api/gateway.svg)
 
-    var json = JsonSerializer.Serialize(dto);
-    await cache.SetStringAsync(cacheKey, json, new DistributedCacheEntryOptions
-    {
-        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
-    }, ct);
+## Когда нужен
+Когда клиенту приходится ходить в несколько сервисов, когда надо убрать знание о внутренней схеме из внешнего контракта и когда общие политики лучше централизовать, чем дублировать в каждом сервисе.
 
-    return Results.Content(json, "application/json");
-});
-        `
-      })),
-      topic("Rate Limiting", article({
-        what: "Rate limiting ограничивает скорость запросов по клиенту, ключу API или маршруту.",
-        problem: "Он защищает API от всплесков трафика, случайного злоупотребления и слишком агрессивных клиентов.",
-        code: `
-builder.Services.AddRateLimiter(options =>
-{
-    options.AddFixedWindowLimiter("api", limiter =>
-    {
-        limiter.PermitLimit = 100;
-        limiter.Window = TimeSpan.FromMinutes(1);
-        limiter.QueueLimit = 0;
-    });
-});
+## Практика
+- Используйте gateway как фасад, а не как место для бизнес-логики.
+- Не давайте клиентам знать внутренние URI сервисов.
+- Сложную агрегацию держите тонкой: gateway собирает ответы, но не заменяет domain/application слой.
+- Для .NET экосистемы часто хватает APIM, YARP или ingress/controller на уровне платформы.`, [
+          link("API gateways - Azure Architecture Center", "https://learn.microsoft.com/en-us/azure/architecture/microservices/design/gateway"),
+          link("Azure API Management - key concepts", "https://learn.microsoft.com/en-us/azure/api-management/api-management-key-concepts"),
+          link("AKS microservices reference architecture", "https://learn.microsoft.com/en-us/azure/architecture/reference-architectures/containers/aks-microservices/aks-microservices")
+        ]),
+            topic("Кэширование", `## Что это
+Кэширование хранит часто повторяемый ответ ближе к клиенту или приложению. У HTTP это не магия ускорения, а набор правил о свежести, валидации и сроках жизни.
 
-app.MapGet("/orders", Handle).RequireRateLimiting("api");
-        `
-      }), [link("Habr — Rate Limiting", "https://habr.com/ru/post/448438/")]),
-      topic("Защита от перегрузки", article({
-        what: "Защита от перегрузки включает timeout, circuit breaker, bulkhead и другие политики graceful degradation.",
-        problem: "Она не даёт одному медленному downstream-сервису утянуть за собой все потоки и положить API целиком.",
-        code: `
-builder.Services.AddHttpClient<PaymentsClient>()
-    .AddTransientHttpErrorPolicy(policy =>
-        policy.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)))
-    .AddTransientHttpErrorPolicy(policy =>
-        policy.TimeoutAsync(TimeSpan.FromSeconds(2)));
-        `
-      })),
-      topic("Пагинация", article({
-        what: "Пагинация делит большой набор данных на порции. Для живых списков надёжнее курсорный подход, а не `Skip/Take` по смещению.",
-        problem: "Курсор защищает от пропусков и дублей элементов, когда данные успевают меняться между запросами.",
-        code: `
-app.MapGet("/orders", async (
-    DateTime? cursorCreatedOn,
-    Guid? cursorId,
-    AppDbContext db,
-    CancellationToken ct) =>
-{
-    var query = db.Orders
-        .OrderBy(x => x.CreatedOnUtc)
-        .ThenBy(x => x.Id);
+![HTTP cache flow](/assets/diagrams/api/cache.svg)
 
-    if (cursorCreatedOn is not null && cursorId is not null)
-    {
-        query = query.Where(x =>
-            x.CreatedOnUtc > cursorCreatedOn.Value ||
-            (x.CreatedOnUtc == cursorCreatedOn.Value && x.Id.CompareTo(cursorId.Value) > 0));
-    }
+## Что полезно помнить
+- \`Cache-Control\` задаёт политику, \`ETag\` и \`Last-Modified\` помогают переиспользовать ответ безопасно.
+- \`304 Not Modified\` дешевле, чем повторная доставка тела.
+- Для неизменяемых статических ресурсов полезны \`immutable\` и длинные TTL.
+- Если ресурс зависит от пользователя, региона или авторизации, кэшируйте очень осторожно или не кэшируйте вовсе.
 
-    return await query.Take(20).ToListAsync(ct);
-});
-        `
-      }), [link("phauer.com — continuation token", "https://phauer.com/2018/web-api-pagination-timestamp-id-continuation-token/")]),
-      topic("Observability API", article({
-        what: "Observability собирает метрики, логи и трейсы так, чтобы по ним можно было восстановить поведение системы в проде.",
-        problem: "Без неё сложно понять, где именно растёт latency, почему падают запросы и какой downstream вызвал цепочку ошибок.",
-        code: `
-builder.Services.AddOpenTelemetry()
-    .WithMetrics(metrics => metrics
-        .AddAspNetCoreInstrumentation()
-        .AddRuntimeInstrumentation()
-        .AddPrometheusExporter())
-    .WithTracing(tracing => tracing
-        .AddAspNetCoreInstrumentation()
-        .AddHttpClientInstrumentation());
+## Практика
+Разделяйте edge cache для публичных ответов и локальный in-memory cache для внутренних повторов. У API и CDN разные задачи: один уменьшает работу origin, другой уменьшает латентность для потребителя.`, [
+          link("RFC 9111 - HTTP Caching", "https://www.rfc-editor.org/rfc/rfc9111"),
+          link("RFC 8246 - HTTP Immutable Responses", "https://www.rfc-editor.org/rfc/rfc8246"),
+          link("Azure Front Door caching", "https://learn.microsoft.com/en-us/azure/frontdoor/front-door-caching")
+        ]),
+            topic("Rate Limiting", `## Что это
+Rate limiting ограничивает скорость запросов по ключу, пользователю, IP или маршруту. Это не про наказание клиента, а про защиту системы от всплесков и обеспечение предсказуемости.
 
-app.MapPrometheusScrapingEndpoint();
-        `
-      }))
+![Схема rate limiting](/assets/diagrams/api/rate-limit.svg)
+
+## Как читать политику
+Лимит обычно описывается тремя вещами: окно, объём и что делать при превышении. Отдельно важно поведение при burst-трафике и то, какие заголовки получает клиент после отказа.
+
+## Практика
+- Возвращайте \`429 Too Many Requests\`.
+- Добавляйте \`Retry-After\`, а где уместно и поля из стандарта \`RateLimit\`.
+- Выбирайте алгоритм под задачу: fixed window проще, token bucket мягче к всплескам, sliding window часто даёт лучший баланс.
+- Если система распределённая, храните состояние лимитов там, где его увидят все инстансы.
+
+## Не путать
+Rate limiting защищает от перегруза, но не гарантирует, что каждая лишняя операция когда-нибудь будет обработана. Для "не терять данные" нужен буфер, очередь и асинхронная обработка.`, [
+          link("Rate limiting middleware in ASP.NET Core", "https://learn.microsoft.com/en-us/aspnet/core/performance/rate-limit?view=aspnetcore-9.0"),
+          link("RFC 9331 - RateLimit Fields", "https://www.rfc-editor.org/info/rfc9331"),
+          link(".NET resilience overview", "https://learn.microsoft.com/en-us/dotnet/core/resilience/")
+        ]),
+            topic("Защита от перегрузки", `## Что это
+Защита от перегрузки собирает несколько механизмов: timeout, retry with backoff, circuit breaker, bulkhead isolation, fallback и очередь. Цель одна - не дать медленной или падающей зависимости утянуть весь API вниз.
+
+## Как думать
+- Timeout ограничивает время ожидания.
+- Circuit breaker быстро режет повторные неудачи.
+- Bulkhead изолирует пулы и очереди для разных типов нагрузки.
+- Queue и \`202 Accepted\` нужны там, где операция может ждать, но не должна терять данные.
+
+## Практика
+Защиту от перегрузки лучше ставить и на входе API, и на исходящих вызовах к БД, HTTP и очередям. Один только retry почти всегда ухудшает ситуацию, если не ограничить его таймаутом и количеством попыток.
+
+## Что помнить
+Плохой dependency management превращает API в цепочку отказов. Хорошая защита от перегрузки делает отказ локальным и коротким.`, [
+          link("Circuit Breaker pattern", "https://learn.microsoft.com/en-us/azure/architecture/patterns/circuit-breaker"),
+          link(".NET resilient HTTP apps", "https://learn.microsoft.com/en-us/dotnet/core/resilience/http-resilience"),
+          link("Polly resilience library", "https://www.pollydocs.org/")
+        ]),
+            topic("Пагинация", `## Что это
+Пагинация делит большой набор данных на порции, чтобы API не отдавал бесконечный список целиком. Для живых данных курсорная пагинация обычно надёжнее offset-подхода, потому что меньше страдает от вставок и удалений между запросами.
+
+![Схема пагинации](/assets/diagrams/api/pagination.svg)
+
+## Практика
+- Для небольших справочников допустим \`offset\` и \`limit\`.
+- Для больших и изменяющихся наборов лучше cursor или continuation token.
+- Всегда задавайте стабильную сортировку, иначе следующая страница станет недетерминированной.
+- Возвращайте \`nextLink\` или token, а не заставляйте клиента вычислять смещение самостоятельно.
+
+## Не забыть
+Если API уже использует page/size, добавляйте ограничения на размер страницы и явно документируйте максимумы. Иначе клиент быстро превратит пагинацию в "вытяни мне всё".`, [
+          link("RFC 8288 - Web Linking", "https://www.rfc-editor.org/rfc/rfc8288.html"),
+          link("Data API Builder pagination", "https://learn.microsoft.com/en-us/azure/data-api-builder/concept/api/pagination"),
+          link("API Best Practices - pagination and filtering", "https://learn.microsoft.com/en-us/azure/architecture/best-practices/api-design")
+        ]),
+            topic("Observability API", `## Что это
+Observability API - это контракт на то, чтобы запрос можно было проследить от входа до всех внутренних вызовов. Обычно сюда входят корреляционные id, trace context, метрики и структурированные логи.
+
+## Как делать
+- Пропагируйте \`traceparent\` / \`tracestate\` или хотя бы \`Correlation-ID\` / \`X-Request-ID\`.
+- Сшивайте логи, метрики и трассы одним идентификатором запроса.
+- Отмечайте длительность, коды ответа, dependency и размер ответа.
+- Для ошибок возвращайте не только текст, но и полезный problem detail.
+
+## Практика
+Хорошая observability не даёт больше шума, она сокращает время поиска причины. Если по API нельзя восстановить путь одного запроса, значит он плохо наблюдаем.`, [
+          link("OpenTelemetry", "https://opentelemetry.io/"),
+          link("Azure Monitor OpenTelemetry", "https://learn.microsoft.com/en-us/azure/azure-monitor/app/opentelemetry"),
+          link("Azure API Design - trace context in APIs", "https://learn.microsoft.com/en-us/azure/architecture/best-practices/api-design")
+        ])
     ]
   },  {
     id: "security", title: "Безопасность", icon: "&#9919;", color: "rose",
     rows: [
-      topic("OWASP Top 10", article({
-        what: "OWASP Top 10 — это список самых типичных классов уязвимостей веб-приложений: инъекции, XSS, broken access control и другие.",
-        problem: "Он помогает использовать безопасность как чек-лист и закрывать базовые риски ещё на этапе проектирования API.",
-        code: `
-builder.Services.AddAuthentication().AddJwtBearer();
-builder.Services.AddAuthorization();
-builder.Services.AddAntiforgery();
+            topic("OWASP Top 10", `## Что это
+OWASP Top 10 - это не полный каталог всех уязвимостей, а короткий список самых частых и дорогих классов ошибок, вокруг которых удобно строить базовую модель рисков для web-приложения и API.
 
-app.UseHttpsRedirection();
-app.UseAuthentication();
-app.UseAuthorization();
-        `
-      }), [link("owasp.org — Top 10", "https://owasp.org/www-project-top-ten/")]),
-      topic("OAuth 2.0", article({
-        what: "OAuth 2.0 описывает, как клиент получает токен доступа к защищённому ресурсу через доверенный authorization server.",
-        problem: "Это отделяет аутентификацию пользователя от API и позволяет безопасно делегировать доступ сторонним приложениям.",
-        how: "Полезно различать роли: пользователь или системный владелец ресурса, клиентское приложение, authorization server и resource server. Сам API чаще всего выступает resource server: он не логинит пользователя напрямую, а принимает и валидирует access token.",
-        code: `
-builder.Services.AddAuthentication("Bearer")
-    .AddJwtBearer("Bearer", options =>
-    {
-        options.Authority = "https://identity.example.com";
-        options.Audience = "orders-api";
-    });
-        `,
-        important: [
-          "OAuth 2.0 — это прежде всего протокол делегированного доступа, а не просто способ 'включить JWT'.",
-          "Нужно чётко понимать, кто выдаёт токен, кому он предназначен и какой ресурс его принимает."
-        ]
-      }), [link("Habr — OAuth 2.0", "https://habr.com/ru/company/dataart/blog/311376/")]),
-      topic("Единая точка аутентификации (SSO)", article({
-        what: "SSO использует один Identity Provider для нескольких приложений, чтобы пользователь логинился один раз и переиспользовал сессию.",
-        problem: "Это убирает дублирование учётных записей и централизует аутентификацию, MFA и правила входа.",
-        code: `
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
-})
-.AddCookie()
-.AddOpenIdConnect(options =>
-{
-    options.Authority = "https://identity.example.com";
-    options.ClientId = "web-app";
-    options.ResponseType = "code";
-    options.UsePkce = true;
-});
-        `
-      })),
-      topic("Авторизация на уровне объектов", article({
-        what: "Resource-based authorization проверяет не только доступ к endpoint, но и право работать с конкретным объектом.",
-        problem: "Это защищает от сценария, когда пользователь угадывает чужой `id` и получает доступ к данным соседа.",
-        code: `
-public sealed class OrderOwnerHandler :
-    AuthorizationHandler<OperationAuthorizationRequirement, Order>
-{
-    protected override Task HandleRequirementAsync(
-        AuthorizationHandlerContext context,
-        OperationAuthorizationRequirement requirement,
-        Order order)
-    {
-        var userId = context.User.FindFirst("sub")?.Value;
+## Как этим пользоваться в 2026
+На момент апреля 2026 на сайте OWASP последней web-редакцией остаётся **Top 10:2025**. На практике Top 10 полезен не как "прошли чек-лист и забыли", а как словарь для разговоров между разработкой, QA, архитектурой и безопасностью.
 
-        if (order.CustomerId.ToString() == userId)
-            context.Succeed(requirement);
+## Как применять к карточкам проекта
+- проходить по каждому пользовательскому сценарию, а не только по endpoint'ам;
+- отдельно смотреть доступ к объектам, криптографию, конфигурацию, supply chain и логирование;
+- связывать Top 10 с более детальным стандартом вроде ASVS и профильными cheat sheets.
 
-        return Task.CompletedTask;
-    }
-}
-        `
-      })),
-      topic("Парадигма: всё закрыто по умолчанию", article({
-        what: "Безопасная позиция по умолчанию — считать endpoint закрытым, пока он явно не разрешён политикой или атрибутом.",
-        problem: "Это защищает от случайно открытых маршрутов, которые забыли пометить `Authorize` после рефакторинга.",
-        code: `
-builder.Services.AddAuthorization(options =>
-{
-    options.FallbackPolicy = new AuthorizationPolicyBuilder()
-        .RequireAuthenticatedUser()
-        .Build();
-});
-        `
-      })),
-      topic("JWT (JSON Web Token)", article({
-        what: "JWT — это компактный токен с набором claims и подписью, который API может проверить без хранения серверной сессии.",
-        problem: "Он удобен для stateless-аутентификации, но требует строгой валидации подписи, аудитории, издателя и срока жизни.",
-        code: `
-builder.Services.AddAuthentication("Bearer")
-    .AddJwtBearer("Bearer", options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true
-        };
-    });
-        `
-      }), [link("jwt.io — introduction", "https://jwt.io/introduction")]),
-      topic("Cookies Policy", article({
-        what: "Политика cookie определяет, может ли cookie читать JavaScript, передаётся ли она только по HTTPS и когда браузер отправляет её на другой сайт.",
-        problem: "Правильные флаги снижают риск XSS, CSRF и утечки аутентификационных данных.",
-        code: `
-builder.Services.ConfigureApplicationCookie(options =>
-{
-    options.Cookie.HttpOnly = true;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    options.Cookie.SameSite = SameSiteMode.Lax;
-});
-        `
-      })),
-      topic("HSTS", article({
-        what: "HSTS просит браузер всегда использовать HTTPS для сайта и больше не пробовать HTTP даже при ручном вводе адреса.",
-        problem: "Это снижает риск downgrade-атак и случайного доступа к приложению по незащищённому каналу.",
-        code: `
-builder.Services.AddHsts(options =>
-{
-    options.Preload = true;
-    options.IncludeSubDomains = true;
-    options.MaxAge = TimeSpan.FromDays(180);
-});
+## Где команды чаще ошибаются
+Самая частая ошибка - думать, что Top 10 заменяет threat modeling. Он хорошо подсвечивает типовые зоны риска, но не знает ничего о ваших бизнес-операциях, интеграциях и внутренней модели доступа.
 
-if (!app.Environment.IsDevelopment())
-{
-    app.UseHsts();
-}
-        `
-      }), [link("docs — HSTS", "https://learn.microsoft.com/ru-ru/aspnet/core/security/enforcing-ssl")]),
-      topic("Secret Storage / Vault", article({
-        what: "Секреты нужно хранить вне исходного кода: в user secrets, переменных окружения или внешнем vault-сервисе.",
-        problem: "Это не даёт ключам и паролям попадать в git, логи и бинарники приложения.",
-        code: `
-if (builder.Environment.IsProduction())
-{
-    builder.Configuration.AddAzureKeyVault(
-        new Uri("https://demo-vault.vault.azure.net/"),
-        new DefaultAzureCredential());
-}
-        `
-      }), [link("docs — app secrets", "https://learn.microsoft.com/ru-ru/aspnet/core/security/app-secrets")]),
-      topic("CSRF / Antiforgery", article({
-        what: "CSRF заставляет браузер жертвы отправить запрос с её cookie на доверенный сайт. Antiforgery-токен позволяет понять, что запрос пришёл от нашей формы или клиента.",
-        problem: "Это особенно важно для cookie-based приложений, где браузер сам прикладывает аутентификацию к запросу.",
-        code: `
-builder.Services.AddAntiforgery();
+## Что запомнить
+- Top 10 нужен для приоритизации, а не для галочки.
+- Самые дорогие проблемы обычно появляются там, где доступ, данные и конфигурация были спроектированы слишком оптимистично.`, [
+          link("OWASP Top 10: 2025 Introduction", "https://owasp.org/Top10/2025/0x00_2025-Introduction/"),
+          link("OWASP Top 10 Project", "https://owasp.org/www-project-top-ten/"),
+          link("OWASP ASVS", "https://owasp.org/www-project-application-security-verification-standard/")
+        ]),
+            topic("OAuth 2.0", `![Поток Authorization Code + PKCE](/assets/diagrams/security/oauth-authorization-code-pkce.svg)
 
-app.MapPost("/profile", async (HttpContext context, IAntiforgery antiforgery) =>
-{
-    await antiforgery.ValidateRequestAsync(context);
-    return Results.NoContent();
-});
-        `
-      }), [link("docs — antiforgery", "https://learn.microsoft.com/ru-ru/aspnet/core/security/anti-request-forgery")]),
-      topic("CORS", article({
-        what: "CORS управляет тем, какие внешние origins могут вызывать ваш API из браузера и с какими методами или заголовками.",
-        problem: "Без явной политики браузерский клиент не сможет безопасно ходить в API с другого домена, а слишком широкая политика открывает лишний доступ.",
-        code: `
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("spa", policy =>
-        policy.WithOrigins("https://app.example.com")
-            .AllowAnyHeader()
-            .AllowAnyMethod());
-});
+## Что это
+OAuth 2.0 описывает делегированный доступ: клиент получает право вызывать защищённый ресурс не по паролю пользователя, а по токену, который выпустил authorization server.
 
-app.UseCors("spa");
-        `
-      }), [link("docs — CORS", "https://learn.microsoft.com/ru-ru/aspnet/core/security/cors")])
+## Что важно различать
+- **OAuth 2.0** отвечает за выдачу и использование токенов доступа.
+- **OpenID Connect** добавляет поверх OAuth слой идентичности и пользовательского логина.
+- Сам API чаще всего выступает **resource server**: он принимает access token, но не хранит пользовательский пароль.
+
+## Какой поток считать основным
+Для браузерных и серверных приложений основной вариант сегодня - **Authorization Code + PKCE**. Для service-to-service сценариев обычно используется **Client Credentials**. Старые схемы вроде implicit flow или передачи пароля приложению не стоит тащить в новые системы.
+
+## Что должен проверять API
+Подпись токена, issuer, audience, срок жизни, scopes/roles и правила для конкретной операции. Сам факт наличия JWT ещё не означает, что доступ выдан корректно.
+
+## Что запомнить
+- OAuth - это про делегирование доступа, не про "включить JWT".
+- Чем короче срок жизни bearer-token и чем яснее его аудитория, тем проще держать систему под контролем.`, [
+          link("RFC 6749 - OAuth 2.0 Authorization Framework", "https://www.rfc-editor.org/rfc/rfc6749"),
+          link("RFC 9700 - Best Current Practice for OAuth 2.0 Security", "https://www.rfc-editor.org/rfc/rfc9700"),
+          link("RFC 6750 - Bearer Token Usage", "https://www.rfc-editor.org/rfc/rfc6750")
+        ]),
+            topic("Единая точка аутентификации (SSO)", `![Цепочка SSO-сессии](/assets/diagrams/security/sso-session-chain.svg)
+
+## Что это
+SSO означает, что несколько приложений доверяют одному identity provider и получают аутентификацию из общего центра. Пользователь логинится один раз, а дальше новые приложения переиспользуют сессию IdP.
+
+## Важный нюанс
+Обычно приложения **не делят одну и ту же cookie между собой**. Они делят доверие к одному провайдеру входа, который уже знает пользователя и может быстро выпустить новую сессию или токены для следующего приложения.
+
+## Из чего состоит хорошая SSO-схема
+- единый IdP с MFA, Conditional Access и аудитом;
+- приложения как доверенные relying parties / clients;
+- понятные правила logout, lifetime и re-authentication для чувствительных операций;
+- минимальный набор claims, который действительно нужен приложению.
+
+## Где чаще ломаются проекты
+Проблемы появляются на logout, долгоживущих сессиях и избыточных claims. SSO не должен превращаться в "если ты однажды вошёл, тебе теперь всё можно везде".
+
+## Что запомнить
+- SSO снижает фрикцию входа, но усиливает требования к самому identity provider.
+- Компрометация IdP или его сессии становится системным риском для всего набора приложений.`, [
+          link("OpenID Connect Core 1.0", "https://openid.net/specs/openid-connect-core-1_0.html"),
+          link("Microsoft Entra - Web App Sign-In Overview", "https://learn.microsoft.com/en-us/entra/identity-platform/scenario-web-app-sign-user-overview")
+        ]),
+            topic("Авторизация на уровне объектов", `![Проверка доступа к объекту](/assets/diagrams/security/object-authorization-check.svg)
+
+## Что это
+Проверка идёт не только на уровне "пользователь вошёл в endpoint", но и на уровне конкретного объекта: заказа, документа, счёта, файла или комментария.
+
+## Почему это критично
+Именно здесь рождается классическая проблема **Broken Object Level Authorization**: пользователь подменяет чужой id и получает данные, которые формально лежат за тем же endpoint'ом.
+
+## Правильный порядок проверки
+1. API принимает идентификатор ресурса.
+2. Сервер сам загружает объект или его security-метаданные.
+3. Policy/handler проверяет владельца, tenant, роль, состояние объекта и допустимую операцию.
+4. Только после этого приложение возвращает данные или выполняет изменение.
+
+## Практический ориентир
+В ASP.NET Core для этого хорошо подходят resource-based policies: авторизация принимает не только пользователя, но и сам объект домена или DTO с нужными полями безопасности.
+
+## Что запомнить
+- Авторизация к объекту почти всегда важнее, чем авторизация к самому URL.
+- Не стоит доверять тому, что клиент "честно" передал свой id или свою роль.`, [
+          link("OWASP API1:2023 - Broken Object Level Authorization", "https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/"),
+          link("ASP.NET Core Resource-Based Authorization", "https://learn.microsoft.com/en-us/aspnet/core/security/authorization/resourcebased?view=aspnetcore-9.0"),
+          link("OWASP Authorization Cheat Sheet", "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html")
+        ]),
+            topic("Парадигма: всё закрыто по умолчанию", `## Что это
+Безопасная позиция по умолчанию - считать любой новый маршрут, handler и background endpoint закрытым, пока он явно не объявлен публичным.
+
+## Зачем это нужно
+Большая часть неприятных инцидентов здесь рождается не из сложной криптографии, а из банального рефакторинга: новый маршрут появился, атрибут забыли, тесты смотрят только на happy-path, и в итоге в систему уехал лишний публичный вход.
+
+## Как выглядит хорошая практика
+- глобальная fallback-policy требует аутентификацию;
+- публичные точки вроде login, callback, health/public status и webhooks помечаются явно;
+- у админских и внутренних маршрутов есть отдельные policy, а не только факт логина;
+- negative tests проверяют, что без прав доступ действительно закрыт.
+
+## Где это особенно важно
+Модульные монолиты, внутренние панели, GraphQL/BFF, технические endpoints, долгоживущие проекты после нескольких волн рефакторинга.
+
+## Что запомнить
+- Fail closed почти всегда дешевле, чем потом искать, какой маршрут остался открытым.
+- Удобство разработки не должно означать "в dev всё открыто, а потом как-нибудь закроем".`, [
+          link("OWASP Authorization Cheat Sheet", "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html"),
+          link("ASP.NET Core AuthorizationOptions.FallbackPolicy", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.authorization.authorizationoptions.fallbackpolicy?view=aspnetcore-9.0"),
+          link("OWASP ASVS", "https://owasp.org/www-project-application-security-verification-standard/")
+        ]),
+            topic("JWT (JSON Web Token)", `## Что это
+JWT - это компактный формат токена, в котором есть claims и криптографическая защита. Обычно API получает такой токен в заголовке Authorization и проверяет его локально, без серверной сессии.
+
+## Что важно понимать
+JWT может быть **подписанным** и доказать, кто его выпустил, но сам по себе не обязан быть зашифрованным. Поэтому нельзя складывать туда то, что не должно попасть в логи, браузерные инструменты или сторонние сервисы.
+
+## Что обязательно проверять
+- допустимый алгоритм подписи;
+- issuer и audience;
+- сроки exp и nbf;
+- ключ подписи и его ротацию;
+- claims, которые реально дают право на конкретную операцию.
+
+## Где команды ошибаются
+Чаще всего проблемы возникают из-за слишком долгого lifetime, отсутствия проверки audience, наивной веры любому токену с знакомым claim и хранения в токене лишней бизнес-информации.
+
+## Что запомнить
+- JWT удобен для stateless-проверки, но отзыв и принудительный logout становятся отдельной задачей.
+- Без строгой валидации библиотека превращается из защиты в ложное чувство безопасности.`, [
+          link("RFC 7519 - JSON Web Token", "https://www.rfc-editor.org/rfc/rfc7519"),
+          link("RFC 8725 - JSON Web Token Best Current Practices", "https://www.rfc-editor.org/rfc/rfc8725"),
+          link("ASP.NET Core JWT Bearer Authentication", "https://learn.microsoft.com/en-us/aspnet/core/security/authentication/configure-jwt-bearer-authentication?view=aspnetcore-9.0")
+        ]),
+            topic("Cookies Policy", `![Матрица флагов cookie](/assets/diagrams/security/cookie-attributes-matrix.svg)
+
+## Что это
+Политика cookie определяет, кто может увидеть cookie и когда браузер её отправит: только ли по HTTPS, доступна ли она JavaScript, можно ли унести её в cross-site запрос и на какие домены она распространяется.
+
+## На что смотреть в первую очередь
+- **Secure**: cookie не должна уходить по HTTP;
+- **HttpOnly**: JavaScript не должен читать auth-cookie;
+- **SameSite**: контролирует cross-site отправку;
+- **Domain / Path / Prefixes**: ограничивают область действия.
+
+## Практический базовый профиль
+Для аутентификационной cookie почти всегда нужен минимум: Secure, HttpOnly, осмысленный SameSite, короткий lifetime и, где возможно, префикс __Host- для host-only режима без лишнего доменного scope.
+
+## Где важно не ошибиться
+Если SPA или внешний IdP действительно требуют cross-site cookie, придётся идти на SameSite=None; Secure, но это решение должно быть осознанным и сопровождаться дополнительной защитой от CSRF.
+
+## Что запомнить
+- Cookie - это часть модели безопасности, а не просто транспорт для сессии.
+- Слишком широкий domain scope и слабые флаги превращают локальную уязвимость в межсервисную.`, [
+          link("MDN - Set-Cookie", "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie"),
+          link("ASP.NET Core SameSite", "https://learn.microsoft.com/en-us/aspnet/core/security/samesite?view=aspnetcore-9.0")
+        ]),
+            topic("HSTS", `## Что это
+HSTS (HTTP Strict Transport Security) - это заголовок, который говорит браузеру: этот сайт нужно открывать только по HTTPS, больше не пробуй откатываться на HTTP.
+
+## Что он реально защищает
+Он снижает риск downgrade-атак и ошибок вида "пользователь однажды зашёл по http:// и попал в небезопасную цепочку редиректов". После получения политики браузер сам поднимает схему до HTTPS.
+
+## Что нужно учитывать перед включением
+- все рабочие поддомены действительно должны поддерживать HTTPS;
+- includeSubDomains и особенно preload нужно включать только после полной готовности домена;
+- в development HSTS обычно отключают, чтобы не ломать локальные сценарии.
+
+## Частое заблуждение
+HSTS не заменяет TLS-настройку и не спасает самый первый визит на домен, если сайт ещё не находится в preload-списке браузеров.
+
+## Что запомнить
+- HSTS хорош как усиление уже правильно настроенного HTTPS.
+- Для production-домена это одна из тех настроек, которые лучше принять как стандарт, а не как опциональную доработку.`, [
+          link("RFC 6797 - HTTP Strict Transport Security", "https://www.rfc-editor.org/rfc/rfc6797"),
+          link("ASP.NET Core Enforce HTTPS / HSTS", "https://learn.microsoft.com/en-us/aspnet/core/security/enforcing-ssl?view=aspnetcore-9.0")
+        ]),
+            topic("Secret Storage / Vault", `![Поток загрузки секретов](/assets/diagrams/security/secret-sources.svg)
+
+## Что это
+Секреты - это пароли, connection strings, signing keys, client secrets и токены, которые нельзя хранить рядом с кодом и конфигурацией, попадающей в git.
+
+## Как выглядит зрелая схема
+- в локальной разработке используются user secrets или локальные secure stores;
+- в CI и runtime секреты приходят через environment/provider-интеграции;
+- production получает их из vault-сервиса по managed identity или другому короткоживущему механизму доверия;
+- ротация и аудит происходят вне приложения.
+
+## Что важно для .NET-проектов
+Хорошая практика - строить конфигурацию как слой providers: appsettings для несекретных значений, user secrets для dev, environment variables для deployment, Key Vault / Vault / Secrets Manager для production.
+
+## Где команды ошибаются
+Секреты протекают не только в git. Они часто оказываются в логах, дампах, docker-образах, wiki и CI-артефактах, если вокруг них нет дисциплины доступа и маскирования.
+
+## Что запомнить
+- Лучший секрет - тот, который приложение получает в runtime и не знает заранее.
+- Vault полезен не только хранением, но и политиками доступа, аудитом и ротацией.`, [
+          link("OWASP Secrets Management Cheat Sheet", "https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html"),
+          link("ASP.NET Core App Secrets", "https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-9.0"),
+          link("ASP.NET Core Key Vault Configuration Provider", "https://learn.microsoft.com/en-us/aspnet/core/security/key-vault-configuration?view=aspnetcore-9.0")
+        ]),
+            topic("CSRF / Antiforgery", `![Защита от CSRF](/assets/diagrams/security/csrf-defense.svg)
+
+## Что это
+CSRF возникает там, где браузер сам прикладывает учётные данные к запросу: обычно cookie или встроенную browser-auth схему. Злоумышленнику достаточно заставить браузер жертвы отправить запрос на доверенный сайт.
+
+## Когда риск особенно реален
+Cookie-based MVC, Razor Pages, BFF, административные панели и любые формы, где браузер уже "авторизован" и может silently отправить POST/PUT/DELETE на ваш origin.
+
+## Как защищаются на практике
+- antiforgery token или специальный заголовок с проверкой происхождения;
+- осмысленный SameSite для cookie;
+- проверка Origin/Referer там, где это уместно;
+- разделение read-only и state-changing запросов.
+
+## Важный нюанс
+Если фронтенд использует короткоживущий bearer-token в заголовке Authorization и не опирается на автоматически отправляемые cookies, то классический CSRF-риск сильно ниже. Но это не отменяет других угроз, например XSS.
+
+## Что запомнить
+- Antiforgery нужен не "вообще для всех API", а там, где браузер способен отправить аутентифицированный запрос без участия пользователя.
+- SameSite помогает, но не должен быть единственной линией защиты.`, [
+          link("OWASP CSRF Prevention Cheat Sheet", "https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html"),
+          link("ASP.NET Core Antiforgery", "https://learn.microsoft.com/en-us/aspnet/core/security/anti-request-forgery?view=aspnetcore-9.0")
+        ]),
+            topic("CORS", `![CORS и preflight](/assets/diagrams/security/cors-preflight.svg)
+
+## Что это
+CORS - это браузерный механизм, который решает, может ли JavaScript одного origin читать ответ от другого origin. Он работает поверх HTTP-заголовков и часто включает preflight-запрос OPTIONS.
+
+## Что CORS не делает
+CORS не является заменой аутентификации и авторизации. Если запрос идёт из curl, Postman или серверного кода, браузерных ограничений просто нет. Поэтому политика CORS не должна восприниматься как защита от неавторизованного вызова API.
+
+## Как настраивать безопасно
+- перечислять точные origins вместо широких масок;
+- разрешать только нужные методы и заголовки;
+- не комбинировать credentials с AllowAnyOrigin;
+- помнить, что preflight кешируется браузером и влияет на UX.
+
+## Где команды чаще ошибаются
+Типичный анти-паттерн - открыть CORS максимально широко, чтобы "быстро заработало", а потом забыть вернуть политику в нормальное состояние. Второй - путать проблемы SPA-интеграции с реальной моделью доступа к данным.
+
+## Что запомнить
+- CORS решает вопрос доступа браузерного кода к ответу, а не вопрос того, кто имеет право вызвать бизнес-операцию.
+- Чем уже allowlist origins, тем меньше шанс случайно открыть лишний front-end канал.`, [
+          link("MDN - Cross-Origin Resource Sharing", "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS"),
+          link("ASP.NET Core CORS", "https://learn.microsoft.com/en-us/aspnet/core/security/cors?view=aspnetcore-9.0")
+        ])
     ]
   }
 ];
