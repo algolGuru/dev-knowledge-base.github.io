@@ -4,6 +4,13 @@ const FG_COLORS = {
   white: '#e8e6f0'
 };
 
+if (window.marked) {
+  marked.setOptions({
+    gfm: true,
+    breaks: true
+  });
+}
+
 const FG = {
   nodes: [], links: [], nodeMap: {},
   svg: null, animId: null,
@@ -541,7 +548,7 @@ window.addEventListener('resize', () => {
 function openTreePopup(row, anchorEl) {
   const popup = document.getElementById('tree-popup');
   document.getElementById('tree-popup-title').textContent = row.topic;
-  document.getElementById('tree-popup-desc').textContent = row.desc;
+  document.getElementById('tree-popup-desc').innerHTML = renderMarkdown(row.desc);
 
   const linksEl = document.getElementById('tree-popup-links');
   linksEl.innerHTML = '';
@@ -577,6 +584,20 @@ function openTreePopup(row, anchorEl) {
 
 function closeTreePopup() {
   document.getElementById('tree-popup').style.display = 'none';
+}
+
+function renderMarkdown(text) {
+  if (window.marked) return marked.parse(text || '');
+  return `<p>${escapeHtml(text || '')}</p>`;
+}
+
+function escapeHtml(text) {
+  return text
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
 
 onSyncRefresh = () => { updateProgress(); fgUpdateLinkColors(); };

@@ -7,6 +7,13 @@ const emptyEl = document.getElementById('empty');
 const statsEl = document.getElementById('stats-bar');
 const searchEl = document.getElementById('search');
 
+if (window.marked) {
+  marked.setOptions({
+    gfm: true,
+    breaks: true
+  });
+}
+
 function buildFilters() {
   let html = `<button class="filter-btn ${activeFilter==='all'?'active':''}" onclick="setFilter('all')">Все<span class="filter-count">${DATA.reduce((s,sec)=>s+sec.rows.length,0)}</span></button>`;
   DATA.forEach(sec => {
@@ -60,7 +67,7 @@ function buildSections() {
       html += `<svg class="card-expand" onclick="toggleCard('${cardId}')" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>`;
       html += `</div>`;
       html += `<div class="card-body">`;
-      html += `<p>${highlight(row.desc, q)}</p>`;
+      html += `<div class="markdown-body">${renderMarkdown(row.desc)}</div>`;
       if (row.links.length > 0) {
         html += `<div style="margin-top:10px">`;
         row.links.forEach(l => {
@@ -82,6 +89,20 @@ function highlight(text, q) {
   if (!q) return text;
   const re = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
   return text.replace(re, '<mark style="background:rgba(79,209,197,0.25);color:inherit;padding:0 2px;border-radius:3px">$1</mark>');
+}
+
+function renderMarkdown(text) {
+  if (window.marked) return marked.parse(text || '');
+  return `<p>${escapeHtml(text || '')}</p>`;
+}
+
+function escapeHtml(text) {
+  return text
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
 
 function setFilter(id) {

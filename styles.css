@@ -300,6 +300,65 @@ a:hover { color: #7ee8df; text-decoration: underline; }
 }
 .card-body a:hover { border-bottom-style: solid; text-decoration: none; }
 
+.markdown-body > :first-child { margin-top: 0; }
+.markdown-body > :last-child { margin-bottom: 0; }
+.markdown-body p,
+.tree-popup-desc p {
+  margin: 0 0 0.9rem;
+}
+.markdown-body ul,
+.markdown-body ol,
+.tree-popup-desc ul,
+.tree-popup-desc ol {
+  margin: 0 0 0.9rem 1.2rem;
+  padding: 0;
+}
+.markdown-body li,
+.tree-popup-desc li {
+  margin-bottom: 0.35rem;
+}
+.markdown-body strong,
+.tree-popup-desc strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.markdown-body em,
+.tree-popup-desc em {
+  color: #c8c4d8;
+}
+.markdown-body code,
+.tree-popup-desc code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  color: var(--accent-cyan);
+  background: rgba(79,209,197,0.08);
+  border: 1px solid rgba(79,209,197,0.16);
+  border-radius: 6px;
+  padding: 0.1rem 0.35rem;
+}
+.markdown-body pre,
+.tree-popup-desc pre {
+  margin: 0 0 0.9rem;
+  padding: 0.75rem 0.9rem;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow-x: auto;
+}
+.markdown-body pre code,
+.tree-popup-desc pre code {
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+.markdown-body blockquote,
+.tree-popup-desc blockquote {
+  margin: 0 0 0.9rem;
+  padding-left: 0.9rem;
+  border-left: 3px solid rgba(79,209,197,0.35);
+  color: #b6b1c7;
+}
+
 .empty-state {
   text-align: center; padding: 4rem 2rem;
   color: var(--text-muted); font-size: 14px;
