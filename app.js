@@ -92,6 +92,7 @@ function buildSections() {
   });
 
   sectionsEl.innerHTML = html;
+  enhanceCodeBlocks(sectionsEl);
   emptyEl.style.display = visibleCount === 0 ? '' : 'none';
 }
 
@@ -106,12 +107,20 @@ function renderMarkdown(text) {
   return `<p>${escapeHtml(text || '')}</p>`;
 }
 
+function enhanceCodeBlocks(root = document) {
+  if (!window.hljs || !root?.querySelectorAll) return;
+  root.querySelectorAll('pre code').forEach(block => {
+    if (block.dataset.hljsDone === 'true') return;
+    window.hljs.highlightElement(block);
+    block.dataset.hljsDone = 'true';
+  });
+}
+
 function renderCommentsBlock({ topicKey, topicTitle, sectionId, sectionTitle, comments }) {
   const itemsHtml = comments.length
     ? comments.map(comment => `
       <div class="comment-item">
         <div class="comment-meta">
-          <strong>${escapeHtml(comment.author || 'Anonymous')}</strong>
           <span>${escapeHtml(formatCommentDate(comment.createdAt) || '')}</span>
         </div>
         <div class="comment-text">${escapeHtml(comment.comment || '').replace(/\n/g, '<br>')}</div>
@@ -126,7 +135,6 @@ function renderCommentsBlock({ topicKey, topicTitle, sectionId, sectionTitle, co
       </div>
       <div class="comments-list" id="comments-list-${topicKey}">${itemsHtml}</div>
       <form class="comment-form" onsubmit="submitCommentFromCard(event, '${topicKey}', '${escapeJs(topicTitle)}', '${sectionId}', '${escapeJs(sectionTitle)}')">
-        <input class="comment-author-input" type="text" name="author" maxlength="60" placeholder="Ваше имя (необязательно)" value="${escapeHtml(commentAuthor || '')}">
         <textarea class="comment-textarea" name="comment" rows="3" maxlength="1000" placeholder="Оставьте комментарий по теме"></textarea>
         <div class="comment-form-footer">
           <div class="comment-status" id="comment-status-${topicKey}"></div>
@@ -171,12 +179,10 @@ async function submitCommentFromCard(event, topicKey, topicTitle, sectionId, sec
   event.preventDefault();
 
   const form = event.currentTarget;
-  const authorInput = form.elements.author;
   const commentInput = form.elements.comment;
   const statusEl = document.getElementById(`comment-status-${topicKey}`);
   const submitBtn = form.querySelector('.comment-submit');
 
-  const author = authorInput.value.trim();
   const comment = commentInput.value.trim();
 
   if (!comment) {
@@ -188,7 +194,7 @@ async function submitCommentFromCard(event, topicKey, topicTitle, sectionId, sec
   submitBtn.disabled = true;
 
   try {
-    await submitComment({ topicKey, topicTitle, sectionId, sectionTitle, author, comment });
+    await submitComment({ topicKey, topicTitle, sectionId, sectionTitle, comment });
     buildSections();
 
     const card = document.getElementById(`card-${topicKey}`);
@@ -196,7 +202,6 @@ async function submitCommentFromCard(event, topicKey, topicTitle, sectionId, sec
 
     const refreshedForm = card ? card.querySelector('.comment-form') : null;
     if (refreshedForm) {
-      refreshedForm.elements.author.value = commentAuthor || author;
       refreshedForm.elements.comment.value = '';
       const refreshedStatus = document.getElementById(`comment-status-${topicKey}`);
       if (refreshedStatus) refreshedStatus.textContent = 'Комментарий сохранен';

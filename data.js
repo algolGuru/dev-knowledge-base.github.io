@@ -639,19 +639,11 @@ AggregateRoot -> DomainEvents -> UnitOfWork.CommitAsync() -> OutboxMessages
 // ── Config ────────────────────────────────────────────────────────────────────
 const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyeDAWD2m7QLsR1KDCqn4_vT77kbJBsY-s45NSqA30DcTUxf1D_5wODHt-8pJp8vdjdFw/exec';
 const STORAGE_KEY = 'devkb_learned';
-const COMMENT_AUTHOR_KEY = 'devkb_comment_author';
 
 // ── Local state ───────────────────────────────────────────────────────────────
 let learned = {};
 try { learned = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e) {}
 function saveLearned() { localStorage.setItem(STORAGE_KEY, JSON.stringify(learned)); }
-
-let commentAuthor = '';
-try { commentAuthor = localStorage.getItem(COMMENT_AUTHOR_KEY) || ''; } catch(e) {}
-function saveCommentAuthor(name) {
-  commentAuthor = name || '';
-  localStorage.setItem(COMMENT_AUTHOR_KEY, commentAuthor);
-}
 
 let commentsByTopic = {};
 
@@ -713,7 +705,6 @@ function normalizeComment(comment) {
     topicTitle: comment.topicTitle || '',
     sectionId: comment.sectionId || '',
     sectionTitle: comment.sectionTitle || '',
-    author: comment.author || 'Anonymous',
     comment: comment.comment || '',
     createdAt: comment.createdAt || new Date().toISOString()
   };
@@ -742,20 +733,16 @@ function rememberCommentLocally(comment) {
 }
 
 async function submitComment(payload) {
-  const trimmedAuthor = (payload.author || '').trim();
   const trimmedComment = (payload.comment || '').trim();
 
   if (!payload.topicKey) throw new Error('topicKey is required');
   if (!trimmedComment) throw new Error('comment is required');
-
-  if (trimmedAuthor) saveCommentAuthor(trimmedAuthor);
 
   const remote = await addCommentToSheets({
     topicKey: payload.topicKey,
     topicTitle: payload.topicTitle,
     sectionId: payload.sectionId,
     sectionTitle: payload.sectionTitle,
-    author: trimmedAuthor || 'Anonymous',
     comment: trimmedComment
   });
 
@@ -766,7 +753,6 @@ async function submitComment(payload) {
     topicTitle: payload.topicTitle,
     sectionId: payload.sectionId,
     sectionTitle: payload.sectionTitle,
-    author: remote.author || trimmedAuthor || 'Anonymous',
     comment: remote.comment || trimmedComment,
     createdAt: remote.createdAt || new Date().toISOString()
   });
