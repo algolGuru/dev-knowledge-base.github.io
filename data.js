@@ -637,13 +637,23 @@ AggregateRoot -> DomainEvents -> UnitOfWork.CommitAsync() -> OutboxMessages
 ];
 
 // ── Config ────────────────────────────────────────────────────────────────────
-const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbypmFuhrakRHWqfi6g4NZW7YOgHcrDdf4atgP1XTEfVDL-Eq42Xnjy3dMCu6-gmayAirg/exec';
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyeDAWD2m7QLsR1KDCqn4_vT77kbJBsY-s45NSqA30DcTUxf1D_5wODHt-8pJp8vdjdFw/exec';
 const STORAGE_KEY = 'devkb_learned';
+const COMMENT_AUTHOR_KEY = 'devkb_comment_author';
 
 // ── Local state ───────────────────────────────────────────────────────────────
 let learned = {};
 try { learned = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e) {}
 function saveLearned() { localStorage.setItem(STORAGE_KEY, JSON.stringify(learned)); }
+
+let commentAuthor = '';
+try { commentAuthor = localStorage.getItem(COMMENT_AUTHOR_KEY) || ''; } catch(e) {}
+function saveCommentAuthor(name) {
+  commentAuthor = name || '';
+  localStorage.setItem(COMMENT_AUTHOR_KEY, commentAuthor);
+}
+
+let commentsByTopic = {};
 
 // ── Sync UI ───────────────────────────────────────────────────────────────────
 function setSyncState(state) {
@@ -672,6 +682,106 @@ async function pushToSheets(key, value) {
     await fetch(`${SHEETS_URL}?action=set&key=${encodeURIComponent(key)}&value=${value}`,
       { signal: AbortSignal.timeout(8000) });
   } catch { /* localStorage already saved — silent fail is fine */ }
+}
+
+async function fetchAllCommentsFromSheets() {
+  try {
+    const r = await fetch(`${SHEETS_URL}?action=getAllComments`, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return null;
+    const d = await r.json();
+    return (d && typeof d === 'object' && !d.error) ? d : null;
+  } catch { return null; }
+}
+
+async function addCommentToSheets(payload) {
+  try {
+    const params = new URLSearchParams({ action: 'addComment' });
+    Object.entries(payload).forEach(([k, v]) => {
+      if (v !== undefined && v !== null) params.set(k, String(v));
+    });
+    const r = await fetch(`${SHEETS_URL}?${params.toString()}`, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return null;
+    const d = await r.json();
+    return (d && typeof d === 'object' && !d.error) ? d : null;
+  } catch { return null; }
+}
+
+function normalizeComment(comment) {
+  return {
+    id: comment.id || `${comment.topicKey}-${comment.createdAt || Date.now()}`,
+    topicKey: comment.topicKey || '',
+    topicTitle: comment.topicTitle || '',
+    sectionId: comment.sectionId || '',
+    sectionTitle: comment.sectionTitle || '',
+    author: comment.author || 'Anonymous',
+    comment: comment.comment || '',
+    createdAt: comment.createdAt || new Date().toISOString()
+  };
+}
+
+function getComments(topicKey) {
+  return commentsByTopic[topicKey] || [];
+}
+
+function setAllComments(raw) {
+  commentsByTopic = {};
+  if (!raw || typeof raw !== 'object') return;
+  Object.keys(raw).forEach(topicKey => {
+    commentsByTopic[topicKey] = Array.isArray(raw[topicKey])
+      ? raw[topicKey].map(normalizeComment)
+      : [];
+  });
+}
+
+function rememberCommentLocally(comment) {
+  const normalized = normalizeComment(comment);
+  commentsByTopic[normalized.topicKey] ||= [];
+  commentsByTopic[normalized.topicKey].push(normalized);
+  commentsByTopic[normalized.topicKey].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  return normalized;
+}
+
+async function submitComment(payload) {
+  const trimmedAuthor = (payload.author || '').trim();
+  const trimmedComment = (payload.comment || '').trim();
+
+  if (!payload.topicKey) throw new Error('topicKey is required');
+  if (!trimmedComment) throw new Error('comment is required');
+
+  if (trimmedAuthor) saveCommentAuthor(trimmedAuthor);
+
+  const remote = await addCommentToSheets({
+    topicKey: payload.topicKey,
+    topicTitle: payload.topicTitle,
+    sectionId: payload.sectionId,
+    sectionTitle: payload.sectionTitle,
+    author: trimmedAuthor || 'Anonymous',
+    comment: trimmedComment
+  });
+
+  if (!remote) throw new Error('Не удалось сохранить комментарий');
+
+  return rememberCommentLocally({
+    topicKey: payload.topicKey,
+    topicTitle: payload.topicTitle,
+    sectionId: payload.sectionId,
+    sectionTitle: payload.sectionTitle,
+    author: remote.author || trimmedAuthor || 'Anonymous',
+    comment: remote.comment || trimmedComment,
+    createdAt: remote.createdAt || new Date().toISOString()
+  });
+}
+
+function formatCommentDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date);
 }
 
 // Debounce rapid toggles into a batch of parallel pushes
@@ -703,12 +813,23 @@ let onSyncRefresh = () => {};
 
 async function initSync() {
   setSyncState('syncing');
-  const remote = await fetchFromSheets();
-  if (!remote) { setSyncState(navigator.onLine ? 'error' : 'offline'); return; }
+  const [remoteProgress, remoteComments] = await Promise.all([
+    fetchFromSheets(),
+    fetchAllCommentsFromSheets()
+  ]);
+
+  if (!remoteProgress) { setSyncState(navigator.onLine ? 'error' : 'offline'); return; }
+
   let changed = false;
-  Object.keys(remote).forEach(k => {
-    if (remote[k] === true && !learned[k]) { learned[k] = true; changed = true; }
+  Object.keys(remoteProgress).forEach(k => {
+    if (remoteProgress[k] === true && !learned[k]) { learned[k] = true; changed = true; }
   });
+
+  if (remoteComments) {
+    setAllComments(remoteComments);
+    changed = true;
+  }
+
   if (changed) { saveLearned(); onSyncRefresh(); }
   setSyncState('synced');
   setTimeout(() => setSyncState('idle'), 2000);

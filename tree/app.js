@@ -546,6 +546,8 @@ window.addEventListener('resize', () => {
 });
 
 function openTreePopup(row, anchorEl) {
+  const topicKey = findTopicKeyByRow(row);
+  const section = DATA.find(sec => sec.id === topicKey.split('-')[0]);
   const popup = document.getElementById('tree-popup');
   document.getElementById('tree-popup-title').textContent = row.topic;
   document.getElementById('tree-popup-desc').innerHTML = renderMarkdown(row.desc);
@@ -563,6 +565,13 @@ function openTreePopup(row, anchorEl) {
   } else {
     linksEl.style.display = 'none';
   }
+
+  renderTreeComments({
+    topicKey,
+    topicTitle: row.topic,
+    sectionId: section?.id || '',
+    sectionTitle: section?.title || ''
+  });
 
   popup.style.display = '';
   popup.style.left = '-9999px';
@@ -584,6 +593,83 @@ function openTreePopup(row, anchorEl) {
 
 function closeTreePopup() {
   document.getElementById('tree-popup').style.display = 'none';
+}
+
+function findTopicKeyByRow(targetRow) {
+  for (const sec of DATA) {
+    const rowIndex = sec.rows.indexOf(targetRow);
+    if (rowIndex !== -1) return `${sec.id}-${rowIndex}`;
+  }
+  return '';
+}
+
+function renderTreeComments({ topicKey, topicTitle, sectionId, sectionTitle }) {
+  const host = document.getElementById('tree-popup-comments');
+  const comments = getComments(topicKey);
+  const itemsHtml = comments.length
+    ? comments.map(comment => `
+      <div class="comment-item">
+        <div class="comment-meta">
+          <strong>${escapeHtml(comment.author || 'Anonymous')}</strong>
+          <span>${escapeHtml(formatCommentDate(comment.createdAt) || '')}</span>
+        </div>
+        <div class="comment-text">${escapeHtml(comment.comment || '').replace(/\n/g, '<br>')}</div>
+      </div>`).join('')
+    : `<div class="comment-empty">Пока нет комментариев. Можно оставить первый.</div>`;
+
+  host.innerHTML = `
+    <div class="comments-block comments-block-tree" data-topic-key="${escapeHtml(topicKey)}">
+      <div class="comments-header">
+        <div class="comments-title">Комментарии</div>
+        <div class="comments-count">${comments.length}</div>
+      </div>
+      <div class="comments-list">${itemsHtml}</div>
+      <form class="comment-form" onsubmit="submitCommentFromTree(event, '${topicKey}', '${escapeJs(topicTitle)}', '${sectionId}', '${escapeJs(sectionTitle)}')">
+        <input class="comment-author-input" type="text" name="author" maxlength="60" placeholder="Ваше имя (необязательно)" value="${escapeHtml(commentAuthor || '')}">
+        <textarea class="comment-textarea" name="comment" rows="3" maxlength="1000" placeholder="Оставьте комментарий по теме"></textarea>
+        <div class="comment-form-footer">
+          <div class="comment-status" id="tree-comment-status"></div>
+          <button class="comment-submit" type="submit">Отправить</button>
+        </div>
+      </form>
+    </div>`;
+}
+
+function escapeJs(text) {
+  return String(text || '')
+    .replaceAll('\\', '\\\\')
+    .replaceAll("'", "\\'");
+}
+
+async function submitCommentFromTree(event, topicKey, topicTitle, sectionId, sectionTitle) {
+  event.preventDefault();
+
+  const form = event.currentTarget;
+  const authorInput = form.elements.author;
+  const commentInput = form.elements.comment;
+  const statusEl = document.getElementById('tree-comment-status');
+  const submitBtn = form.querySelector('.comment-submit');
+  const author = authorInput.value.trim();
+  const comment = commentInput.value.trim();
+
+  if (!comment) {
+    statusEl.textContent = 'Нужен текст комментария';
+    return;
+  }
+
+  statusEl.textContent = 'Сохраняю...';
+  submitBtn.disabled = true;
+
+  try {
+    await submitComment({ topicKey, topicTitle, sectionId, sectionTitle, author, comment });
+    renderTreeComments({ topicKey, topicTitle, sectionId, sectionTitle });
+    const refreshedStatus = document.getElementById('tree-comment-status');
+    if (refreshedStatus) refreshedStatus.textContent = 'Комментарий сохранен';
+  } catch (err) {
+    statusEl.textContent = err.message || 'Ошибка сохранения';
+  } finally {
+    submitBtn.disabled = false;
+  }
 }
 
 function renderMarkdown(text) {

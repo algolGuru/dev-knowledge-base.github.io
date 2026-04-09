@@ -41,9 +41,11 @@ function buildSections() {
   DATA.forEach((sec, si) => {
     if (activeFilter !== 'all' && activeFilter !== sec.id) return;
 
-    const filteredRows = sec.rows.filter(r =>
-      !q || r.topic.toLowerCase().includes(q) || r.desc.toLowerCase().includes(q)
-    );
+    const filteredRows = sec.rows
+      .map((row, rowIndex) => ({ row, rowIndex }))
+      .filter(({ row }) =>
+        !q || row.topic.toLowerCase().includes(q) || row.desc.toLowerCase().includes(q)
+      );
 
     if (filteredRows.length === 0) return;
     visibleCount += filteredRows.length;
@@ -57,9 +59,10 @@ function buildSections() {
     html += `</div>`;
     html += `<div class="section-body">`;
 
-    filteredRows.forEach((row, ri) => {
-      const cardId = `${sec.id}-${ri}`;
+    filteredRows.forEach(({ row, rowIndex }) => {
+      const cardId = `${sec.id}-${rowIndex}`;
       const isLearned = learned[cardId];
+      const comments = getComments(cardId);
       html += `<div class="card ${isLearned?'learned':''}" id="card-${cardId}">`;
       html += `<div class="card-header">`;
       html += `<div class="card-check" onclick="event.stopPropagation();toggleLearned('${cardId}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg></div>`;
@@ -75,6 +78,13 @@ function buildSections() {
         });
         html += `</div>`;
       }
+      html += renderCommentsBlock({
+        topicKey: cardId,
+        topicTitle: row.topic,
+        sectionId: sec.id,
+        sectionTitle: sec.title,
+        comments
+      });
       html += `</div></div>`;
     });
 
@@ -94,6 +104,42 @@ function highlight(text, q) {
 function renderMarkdown(text) {
   if (window.marked) return marked.parse(text || '');
   return `<p>${escapeHtml(text || '')}</p>`;
+}
+
+function renderCommentsBlock({ topicKey, topicTitle, sectionId, sectionTitle, comments }) {
+  const itemsHtml = comments.length
+    ? comments.map(comment => `
+      <div class="comment-item">
+        <div class="comment-meta">
+          <strong>${escapeHtml(comment.author || 'Anonymous')}</strong>
+          <span>${escapeHtml(formatCommentDate(comment.createdAt) || '')}</span>
+        </div>
+        <div class="comment-text">${escapeHtml(comment.comment || '').replace(/\n/g, '<br>')}</div>
+      </div>`).join('')
+    : `<div class="comment-empty">Пока нет комментариев. Можно оставить первый.</div>`;
+
+  return `
+    <div class="comments-block" data-topic-key="${escapeHtml(topicKey)}">
+      <div class="comments-header">
+        <div class="comments-title">Комментарии</div>
+        <div class="comments-count">${comments.length}</div>
+      </div>
+      <div class="comments-list" id="comments-list-${topicKey}">${itemsHtml}</div>
+      <form class="comment-form" onsubmit="submitCommentFromCard(event, '${topicKey}', '${escapeJs(topicTitle)}', '${sectionId}', '${escapeJs(sectionTitle)}')">
+        <input class="comment-author-input" type="text" name="author" maxlength="60" placeholder="Ваше имя (необязательно)" value="${escapeHtml(commentAuthor || '')}">
+        <textarea class="comment-textarea" name="comment" rows="3" maxlength="1000" placeholder="Оставьте комментарий по теме"></textarea>
+        <div class="comment-form-footer">
+          <div class="comment-status" id="comment-status-${topicKey}"></div>
+          <button class="comment-submit" type="submit">Отправить</button>
+        </div>
+      </form>
+    </div>`;
+}
+
+function escapeJs(text) {
+  return String(text || '')
+    .replaceAll('\\', '\\\\')
+    .replaceAll("'", "\\'");
 }
 
 function escapeHtml(text) {
@@ -119,6 +165,47 @@ function toggleSection(id) {
 function toggleCard(id) {
   const el = document.getElementById('card-' + id);
   if (el) el.classList.toggle('open');
+}
+
+async function submitCommentFromCard(event, topicKey, topicTitle, sectionId, sectionTitle) {
+  event.preventDefault();
+
+  const form = event.currentTarget;
+  const authorInput = form.elements.author;
+  const commentInput = form.elements.comment;
+  const statusEl = document.getElementById(`comment-status-${topicKey}`);
+  const submitBtn = form.querySelector('.comment-submit');
+
+  const author = authorInput.value.trim();
+  const comment = commentInput.value.trim();
+
+  if (!comment) {
+    statusEl.textContent = 'Нужен текст комментария';
+    return;
+  }
+
+  statusEl.textContent = 'Сохраняю...';
+  submitBtn.disabled = true;
+
+  try {
+    await submitComment({ topicKey, topicTitle, sectionId, sectionTitle, author, comment });
+    buildSections();
+
+    const card = document.getElementById(`card-${topicKey}`);
+    if (card) card.classList.add('open');
+
+    const refreshedForm = card ? card.querySelector('.comment-form') : null;
+    if (refreshedForm) {
+      refreshedForm.elements.author.value = commentAuthor || author;
+      refreshedForm.elements.comment.value = '';
+      const refreshedStatus = document.getElementById(`comment-status-${topicKey}`);
+      if (refreshedStatus) refreshedStatus.textContent = 'Комментарий сохранен';
+    }
+  } catch (err) {
+    statusEl.textContent = err.message || 'Ошибка сохранения';
+  } finally {
+    submitBtn.disabled = false;
+  }
 }
 
 function toggleLearned(id) {
