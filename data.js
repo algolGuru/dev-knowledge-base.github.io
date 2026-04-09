@@ -27,51 +27,33 @@ const DATA = [
   {
     id: "arch", title: "Архитектура монолитных приложений", icon: "&#9608;", color: "cyan",
     rows: [
-      topic("Слои (Layers)", article({
-        what: "Слои разделяют ответственность: `Presentation` принимает запрос, `Application` координирует сценарий, `Domain` хранит бизнес-правила, `Infrastructure` работает с БД и внешними сервисами.",
-        problem: "Так HTTP, EF Core и интеграции не протекают в доменную модель, а изменения локализуются в одном месте.",
-        code: `
-public sealed class OrdersController : ControllerBase
-{
-    [HttpPost("/orders")]
-    public Task<Guid> Create(
-        [FromBody] CreateOrderCommand command,
-        [FromServices] CreateOrderHandler handler,
-        CancellationToken ct) =>
-        handler.Handle(command, ct);
-}
-        `,
-        important: [
-          "Зависимости должны смотреть внутрь, а не наружу.",
-          "Контроллер вызывает use case, а не пишет бизнес-логику сам."
-        ]
-      }), [link("The Clean Architecture — Uncle Bob", "https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html")]),
-      topic("Чистая архитектура (Clean Architecture)", article({
-        what: "Clean Architecture держит бизнес-правила в центре и заставляет внешний код зависеть от абстракций ядра, а не наоборот.",
-        problem: "Это позволяет менять ORM, UI, способ запуска и интеграции без переписывания бизнес-логики.",
-        code: `
-public interface IOrderRepository
-{
-    Task AddAsync(Order order, CancellationToken ct);
-}
+      topic("Слои (Layers)", `Разделение приложения на слои: **Presentation**, **Application**, **Domain**, **Infrastructure**.
 
-public sealed class EfOrderRepository : IOrderRepository
-{
-    private readonly AppDbContext _db;
+Каждый слой имеет чёткую ответственность. Зависимости направлены внутрь по **Dependency Rule**.
 
-    public EfOrderRepository(AppDbContext db)
-    {
-        _db = db;
-    }
+В терминах **Clean Architecture**:
 
-    public Task AddAsync(Order order, CancellationToken ct)
-    {
-        _db.Orders.Add(order);
-        return Task.CompletedTask;
-    }
-}
-        `
-      }), [link("Clean Architecture — оригинал", "https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html")]),
+- **Entities** — ядро бизнеса.
+  Тут лежат сущности и правила предметной области: например \`Order\`, \`Account\`, \`Money\`.
+  Они не знают про HTTP, БД, ORM, UI.
+- **Use Cases** — сценарии приложения.
+  Это действия типа: \`CreateOrder\`, \`TransferMoney\`, \`LoginUser\`.
+  Они говорят, что система делает, и координируют entities.
+- **Interface Adapters** — слой-переводчик между внутренней логикой и внешним миром.
+  Внутри обычно:
+  - **Controllers** — принимают входящий запрос;
+  - **Presenters** — подготавливают результат для показа;
+  - **Views** — отображают результат;
+  - **Gateways / Repositories / API adapters** — ходят в БД и внешние сервисы.
+- **Frameworks & Drivers** — внешняя инфраструктура:
+  web framework, БД, ORM, роутинг, конфиг, драйверы, SDK.
+
+Что такое **Presenter**:
+
+- это не бизнес-логика;
+- он берет результат use case и превращает его в удобный формат для UI/API;
+- например: из внутреннего Response делает JSON, ViewModel или DTO для экрана.`, [link("The Clean Architecture — Uncle Bob", "https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html")]),
+      topic("Чистая архитектура (Clean Architecture)", "Архитектурный паттерн Роберта Мартина: независимость от фреймворков, UI, БД. Ядро — бизнес-логика, внешние слои — инфраструктура. Ключевой принцип — Dependency Inversion.", [link("Clean Architecture — оригинал", "https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html")]),
       topic("Разделение на компоненты и модули", article({
         what: "Модули группируют код по фиче или bounded context, чтобы внутри лежали свои контроллеры, application-слой, домен и инфраструктура.",
         problem: "Это уменьшает связанность между частями монолита и позволяет развивать фичи почти как отдельные мини-приложения.",
@@ -87,40 +69,508 @@ public static class BillingModule
 }
         `
       })),
-      topic("Реализация Outbox", article({
-        what: "Outbox сохраняет доменное событие в отдельную таблицу в той же транзакции, что и изменение агрегата, а публикует его уже фоновый процесс.",
-        problem: "Это убирает потерю событий между шагами `сохранили в БД` и `отправили в брокер`.",
-        code: `
-public sealed class UnitOfWork
-{
-    private readonly AppDbContext _db;
+      topic("Реализация Outbox", `## Зачем вообще Outbox
 
-    public UnitOfWork(AppDbContext db)
+Проблема в том, что нельзя надежно сделать так:
+
+1. сохранить заказ в БД
+2. потом отправить событие в брокер
+
+Потому что между этими шагами всё может упасть.
+
+### Outbox решает это так:
+
+* агрегат поднимает доменное событие
+* при \`CommitAsync()\` это событие записывается в таблицу \`OutboxMessages\`
+* и сам агрегат, и outbox сохраняются **в одной транзакции**
+* потом отдельный процесс читает outbox и публикует события наружу
+
+---
+
+# Как выглядит поток
+
+## Сценарий создания заказа
+
+1. \`CommandHandler\` вызывает \`Order.Create(...)\`
+2. \`Order\` проверяет инварианты
+3. \`Order\` добавляет \`DomainEvent\`
+4. \`Repository\` добавляет агрегат в \`DbContext\`
+5. \`UnitOfWork.CommitAsync()\`:
+
+   * собирает \`DomainEvents\`
+   * превращает их в \`OutboxMessage\`
+   * вызывает \`SaveChangesAsync()\`
+6. фоновый процесс читает \`OutboxMessages\`
+7. публикует событие
+8. помечает сообщение как обработанное
+
+---
+
+# Минимальный пример
+
+## 1. Domain primitives
+
+\`\`\`csharp
+namespace Demo.Domain.Primitives;
+
+public interface IDomainEvent
+{
+    Guid Id { get; }
+    DateTime OccurredOnUtc { get; }
+}
+
+public abstract record DomainEvent : IDomainEvent
+{
+    public Guid Id { get; init; } = Guid.NewGuid();
+    public DateTime OccurredOnUtc { get; init; } = DateTime.UtcNow;
+}
+\`\`\`
+
+\`\`\`csharp
+using System.Collections.ObjectModel;
+
+namespace Demo.Domain.Primitives;
+
+public abstract class AggregateRoot
+{
+    private readonly List<IDomainEvent> _domainEvents = [];
+
+    public IReadOnlyCollection<IDomainEvent> DomainEvents =>
+        new ReadOnlyCollection<IDomainEvent>(_domainEvents);
+
+    protected void Raise(IDomainEvent domainEvent)
     {
-        _db = db;
+        _domainEvents.Add(domainEvent);
     }
 
-    public async Task CommitAsync(CancellationToken ct)
+    public void ClearDomainEvents()
     {
-        var domainEvents = _db.ChangeTracker
+        _domainEvents.Clear();
+    }
+}
+\`\`\`
+
+---
+
+## 2. Агрегат Order
+
+\`\`\`csharp
+using Demo.Domain.Primitives;
+
+namespace Demo.Domain.Orders;
+
+public sealed class Order : AggregateRoot
+{
+    private readonly List<OrderLine> _lines = [];
+
+    private Order() { }
+
+    public Guid Id { get; private set; }
+    public Guid CustomerId { get; private set; }
+    public decimal TotalAmount { get; private set; }
+
+    public IReadOnlyCollection<OrderLine> Lines => _lines.AsReadOnly();
+
+    public static Order Create(Guid customerId, IEnumerable<CreateOrderLineData> lines)
+    {
+        var items = lines.ToList();
+
+        if (customerId == Guid.Empty)
+            throw new ArgumentException("CustomerId is required.");
+
+        if (items.Count == 0)
+            throw new InvalidOperationException("Order must have at least one line.");
+
+        var order = new Order
+        {
+            Id = Guid.NewGuid(),
+            CustomerId = customerId
+        };
+
+        foreach (var item in items)
+        {
+            order.AddLine(item.ProductId, item.Quantity, item.UnitPrice);
+        }
+
+        order.Raise(new OrderCreatedDomainEvent(order.Id, order.CustomerId, order.TotalAmount));
+
+        return order;
+    }
+
+    private void AddLine(Guid productId, int quantity, decimal unitPrice)
+    {
+        if (productId == Guid.Empty)
+            throw new ArgumentException("ProductId is required.");
+
+        if (quantity <= 0)
+            throw new InvalidOperationException("Quantity must be greater than zero.");
+
+        if (unitPrice <= 0)
+            throw new InvalidOperationException("UnitPrice must be greater than zero.");
+
+        _lines.Add(new OrderLine(productId, quantity, unitPrice));
+        TotalAmount = _lines.Sum(x => x.Quantity * x.UnitPrice);
+    }
+}
+
+public sealed class OrderLine
+{
+    private OrderLine() { }
+
+    public OrderLine(Guid productId, int quantity, decimal unitPrice)
+    {
+        Id = Guid.NewGuid();
+        ProductId = productId;
+        Quantity = quantity;
+        UnitPrice = unitPrice;
+    }
+
+    public Guid Id { get; private set; }
+    public Guid ProductId { get; private set; }
+    public int Quantity { get; private set; }
+    public decimal UnitPrice { get; private set; }
+}
+
+public sealed record CreateOrderLineData(Guid ProductId, int Quantity, decimal UnitPrice);
+
+public sealed record OrderCreatedDomainEvent(
+    Guid OrderId,
+    Guid CustomerId,
+    decimal TotalAmount) : DomainEvent;
+\`\`\`
+
+---
+
+## 3. Command
+
+\`\`\`csharp
+namespace Demo.Application.Orders.CreateOrder;
+
+public sealed record CreateOrderCommand(
+    Guid CustomerId,
+    IReadOnlyCollection<CreateOrderLineRequest> Lines);
+
+public sealed record CreateOrderLineRequest(
+    Guid ProductId,
+    int Quantity,
+    decimal UnitPrice);
+\`\`\`
+
+---
+
+## 4. Repository и UnitOfWork
+
+\`\`\`csharp
+using Demo.Domain.Orders;
+
+namespace Demo.Application.Abstractions;
+
+public interface IOrderRepository
+{
+    Task AddAsync(Order order, CancellationToken cancellationToken = default);
+}
+
+public interface IUnitOfWork
+{
+    Task CommitAsync(CancellationToken cancellationToken = default);
+}
+\`\`\`
+
+---
+
+## 5. CommandHandler
+
+Здесь нет логики outbox. Это важно.
+
+\`\`\`csharp
+using Demo.Application.Abstractions;
+using Demo.Domain.Orders;
+
+namespace Demo.Application.Orders.CreateOrder;
+
+public sealed class CreateOrderCommandHandler
+{
+    private readonly IOrderRepository _orders;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public CreateOrderCommandHandler(IOrderRepository orders, IUnitOfWork unitOfWork)
+    {
+        _orders = orders;
+        _unitOfWork = unitOfWork;
+    }
+
+    public async Task<Guid> Handle(CreateOrderCommand command, CancellationToken cancellationToken)
+    {
+        var order = Order.Create(
+            command.CustomerId,
+            command.Lines.Select(x => new CreateOrderLineData(
+                x.ProductId,
+                x.Quantity,
+                x.UnitPrice)));
+
+        await _orders.AddAsync(order, cancellationToken);
+        await _unitOfWork.CommitAsync(cancellationToken);
+
+        return order.Id;
+    }
+}
+\`\`\`
+
+---
+
+## 6. OutboxMessage
+
+\`\`\`csharp
+namespace Demo.Infrastructure.Outbox;
+
+public sealed class OutboxMessage
+{
+    public Guid Id { get; set; }
+    public DateTime OccurredOnUtc { get; set; }
+    public string Type { get; set; } = string.Empty;
+    public string Payload { get; set; } = string.Empty;
+    public DateTime? ProcessedOnUtc { get; set; }
+    public string? Error { get; set; }
+}
+\`\`\`
+
+---
+
+## 7. DbContext
+
+\`\`\`csharp
+using Demo.Domain.Orders;
+using Demo.Infrastructure.Outbox;
+using Microsoft.EntityFrameworkCore;
+
+namespace Demo.Infrastructure.Persistence;
+
+public sealed class AppDbContext : DbContext
+{
+    public DbSet<Order> Orders => Set<Order>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Order>(builder =>
+        {
+            builder.ToTable("orders");
+            builder.HasKey(x => x.Id);
+
+            builder.Property(x => x.CustomerId).IsRequired();
+            builder.Property(x => x.TotalAmount).HasPrecision(18, 2);
+
+            builder.OwnsMany(x => x.Lines, lines =>
+            {
+                lines.ToTable("order_lines");
+                lines.WithOwner().HasForeignKey("OrderId");
+                lines.HasKey(x => x.Id);
+                lines.Property(x => x.ProductId).IsRequired();
+                lines.Property(x => x.Quantity).IsRequired();
+                lines.Property(x => x.UnitPrice).HasPrecision(18, 2);
+            });
+
+            builder.Ignore(x => x.DomainEvents);
+        });
+
+        modelBuilder.Entity<OutboxMessage>(builder =>
+        {
+            builder.ToTable("outbox_messages");
+            builder.HasKey(x => x.Id);
+
+            builder.Property(x => x.Type).IsRequired();
+            builder.Property(x => x.Payload).IsRequired();
+            builder.Property(x => x.OccurredOnUtc).IsRequired();
+        });
+    }
+}
+\`\`\`
+
+---
+
+## 8. Repository
+
+\`\`\`csharp
+using Demo.Application.Abstractions;
+using Demo.Domain.Orders;
+using Demo.Infrastructure.Persistence;
+
+namespace Demo.Infrastructure.Repositories;
+
+public sealed class OrderRepository : IOrderRepository
+{
+    private readonly AppDbContext _dbContext;
+
+    public OrderRepository(AppDbContext dbContext)
+    {
+        _dbContext = dbContext;
+    }
+
+    public Task AddAsync(Order order, CancellationToken cancellationToken = default)
+    {
+        _dbContext.Orders.Add(order);
+        return Task.CompletedTask;
+    }
+}
+\`\`\`
+
+---
+
+## 9. Главное: UnitOfWork.CommitAsync()
+
+Вот центральная часть.
+
+\`\`\`csharp
+using System.Text.Json;
+using Demo.Application.Abstractions;
+using Demo.Domain.Primitives;
+using Demo.Infrastructure.Outbox;
+using Demo.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+
+namespace Demo.Infrastructure;
+
+public sealed class UnitOfWork : IUnitOfWork
+{
+    private readonly AppDbContext _dbContext;
+
+    public UnitOfWork(AppDbContext dbContext)
+    {
+        _dbContext = dbContext;
+    }
+
+    public async Task CommitAsync(CancellationToken cancellationToken = default)
+    {
+        var aggregates = _dbContext.ChangeTracker
             .Entries<AggregateRoot>()
-            .SelectMany(entry => entry.Entity.DomainEvents)
+            .Select(x => x.Entity)
+            .Where(x => x.DomainEvents.Any())
+            .ToList();
+
+        var domainEvents = aggregates
+            .SelectMany(x => x.DomainEvents)
             .ToList();
 
         foreach (var domainEvent in domainEvents)
         {
-            _db.OutboxMessages.Add(OutboxMessage.Create(domainEvent));
+            var outboxMessage = new OutboxMessage
+            {
+                Id = domainEvent.Id,
+                OccurredOnUtc = domainEvent.OccurredOnUtc,
+                Type = domainEvent.GetType().FullName!,
+                Payload = JsonSerializer.Serialize(domainEvent, domainEvent.GetType())
+            };
+
+            _dbContext.OutboxMessages.Add(outboxMessage);
         }
 
-        await _db.SaveChangesAsync(ct);
+        foreach (var aggregate in aggregates)
+        {
+            aggregate.ClearDomainEvents();
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 }
-        `,
-        important: [
-          "Событие записывается в БД атомарно вместе с агрегатом.",
-          "Публикация наружу выполняется отдельно и может безопасно ретраиться."
-        ]
-      }), [link("microservices.io — Outbox", "https://microservices.io/patterns/data/transactional-outbox.html")]),
+\`\`\`
+
+---
+
+# Почему это хороший вариант
+
+## 1. Агрегат знает только про домен
+
+Он не знает ни про брокер, ни про outbox, ни про инфраструктуру.
+
+## 2. CommandHandler не замусорен
+
+Он просто создает агрегат и вызывает commit.
+
+## 3. Outbox добавляется автоматически
+
+Любое доменное событие агрегата попадет в outbox при сохранении.
+
+## 4. Всё сохраняется атомарно
+
+\`Order\` и \`OutboxMessage\` пишутся одним \`SaveChangesAsync()\`.
+
+---
+
+# 10. Фоновый обработчик
+
+Минимальная версия: читает outbox и помечает сообщения обработанными.
+
+\`\`\`csharp
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Demo.Infrastructure.Persistence;
+
+namespace Demo.Infrastructure.Outbox;
+
+public sealed class OutboxProcessor : BackgroundService
+{
+    private readonly IServiceProvider _serviceProvider;
+
+    public OutboxProcessor(IServiceProvider serviceProvider)
+    {
+        _serviceProvider = serviceProvider;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            var messages = await dbContext.OutboxMessages
+                .Where(x => x.ProcessedOnUtc == null)
+                .OrderBy(x => x.OccurredOnUtc)
+                .Take(20)
+                .ToListAsync(stoppingToken);
+
+            foreach (var message in messages)
+            {
+                try
+                {
+                    // Здесь будет публикация в Kafka / RabbitMQ / Service Bus
+                    Console.WriteLine($"Publish: {message.Type}");
+
+                    message.ProcessedOnUtc = DateTime.UtcNow;
+                    message.Error = null;
+                }
+                catch (Exception ex)
+                {
+                    message.Error = ex.Message;
+                }
+            }
+
+            await dbContext.SaveChangesAsync(stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
+        }
+    }
+}
+\`\`\`
+
+---
+
+# Что в итоге надо запомнить
+
+Самая важная связка здесь такая:
+
+\`\`\`csharp
+AggregateRoot -> DomainEvents -> UnitOfWork.CommitAsync() -> OutboxMessages
+\`\`\`
+
+Именно это и дает нужный эффект:
+
+* доменная модель остается чистой
+* приложение остается простым
+* инфраструктура надежно сохраняет события
+* публикация наружу происходит отдельно`, [link("microservices.io — Outbox", "https://microservices.io/patterns/data/transactional-outbox.html")]),
       topic("Domain layer — что пишем, структура", article({
         what: "В `Domain` лежат агрегаты, entities, value objects, domain services и domain events. Здесь нет контроллеров, SQL и вызовов брокеров.",
         problem: "Это держит бизнес-правила в одном месте и не даёт инфраструктуре определять поведение модели.",
