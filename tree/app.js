@@ -226,7 +226,7 @@ function buildTree() {
     fgUpdateLabelVisibility();
   }, { passive: false });
 
-  // Touch pinch-to-zoom start
+  // Touch: pinch-to-zoom (2 fingers) or single-finger pan on background
   svg.addEventListener('touchstart', e => {
     if (e.touches.length === 2 && !FG.dragging) {
       e.preventDefault();
@@ -237,10 +237,20 @@ function buildTree() {
       const mid = clientToSVG((t0.clientX + t1.clientX) / 2, (t0.clientY + t1.clientY) / 2);
       FG._pinchMidX0 = mid.x; FG._pinchMidY0 = mid.y;
       FG.panning = false;
+    } else if (e.touches.length === 1 && !FG.dragging) {
+      // Single finger on background — start pan
+      e.preventDefault();
+      FG.panning = true;
+      FG._panMoved = false;
+      const t = e.touches[0];
+      FG.panStartX = t.clientX; FG.panStartY = t.clientY;
+      FG.panStartVX = FG.viewX; FG.panStartVY = FG.viewY;
     }
   }, { passive: false });
 
   // Animate physics from initial state until settled
+  fgApplyViewport();
+  fgUpdateLinkColors();
   FG.alpha = 1;
   FG.animId = requestAnimationFrame(fgTick);
 }
@@ -324,6 +334,33 @@ function clientToWorld(clientX, clientY) {
 function clientToSVG(clientX, clientY) {
   const r = FG.svg.getBoundingClientRect();
   return { x: clientX - r.left, y: clientY - r.top };
+}
+
+function fgUpdateLinkColors() {
+  // Count learned leaves per section
+  const secDone = {}, secTotal = {};
+  DATA.forEach(sec => {
+    secTotal[sec.id] = sec.rows.length;
+    secDone[sec.id]  = sec.rows.filter((_, i) => learned[`${sec.id}-${i}`]).length;
+  });
+
+  FG.links.forEach(link => {
+    const el = link.el;
+    if (link.source === '__root__') {
+      // Root → section: green when all leaves learned
+      const allDone = secTotal[link.target] > 0 && secDone[link.target] === secTotal[link.target];
+      el.setAttribute('stroke',         allDone ? '#6ee7b7' : '#e8e6f0');
+      el.setAttribute('stroke-opacity', allDone ? '0.7'     : '0.15');
+      el.setAttribute('stroke-width',   allDone ? '1.5'     : '1');
+    } else {
+      // Section → leaf: green when leaf is learned
+      const done    = !!learned[link.target];
+      const srcNode = FG.nodeMap[link.source];
+      el.setAttribute('stroke',         done ? '#6ee7b7' : (srcNode ? FG_COLORS[srcNode.color] : '#e8e6f0'));
+      el.setAttribute('stroke-opacity', done ? '0.6'    : '0.2');
+      el.setAttribute('stroke-width',   done ? '1'      : '0.8');
+    }
+  });
 }
 
 function fgUpdateLabelVisibility() {
@@ -439,6 +476,16 @@ document.addEventListener('touchmove', e => {
     fgApplyViewport(); fgUpdateLabelVisibility();
     return;
   }
+  // Single-finger pan on background
+  if (e.touches.length === 1 && FG.panning && !FG.dragging) {
+    const t = e.touches[0];
+    const dx = t.clientX - FG.panStartX, dy = t.clientY - FG.panStartY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) FG._panMoved = true;
+    FG.viewX = FG.panStartVX + dx;
+    FG.viewY = FG.panStartVY + dy;
+    fgApplyViewport();
+    return;
+  }
   if (!FG.dragging) return;
   const t = e.touches[0];
   const w = clientToWorld(t.clientX, t.clientY);
@@ -458,6 +505,7 @@ document.addEventListener('touchend', () => {
     fgWakeChildren(node);
   }
   FG._pinchDist0 = 0;
+  FG.panning = false;
 });
 
 // Close popup on outside click
@@ -531,7 +579,7 @@ function closeTreePopup() {
   document.getElementById('tree-popup').style.display = 'none';
 }
 
-onSyncRefresh = () => { updateProgress(); };
+onSyncRefresh = () => { updateProgress(); fgUpdateLinkColors(); };
 
 updateProgress();
 initSync();

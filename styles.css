@@ -327,12 +327,47 @@ a:hover { color: #7ee8df; text-decoration: underline; }
 .card::before { background: var(--sec-color); }
 .filter-btn[data-color].active { border-color: var(--sec-color); color: var(--sec-color); }
 
+/* ── Mobile ──────────────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
-  .container { padding: 1rem; }
+  /* Header: 2 rows — [logo | tabs] then [progress bar] */
   .header { padding: 0 1rem; }
-  .hero { padding: 2rem 0 1rem; }
-  .card-body { padding-left: 16px; }
+  .header-inner {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 10px 0 8px;
+    gap: 6px;
+  }
+  .logo { flex: 1; font-size: 12px; letter-spacing: 1px; }
+  .progress-bar {
+    order: 3;
+    width: 100%;
+    font-size: 11px;
+    gap: 8px;
+  }
+  .progress-track { width: 80px; flex-shrink: 0; }
+  .sync-label { display: none; }
+
+  /* Layout */
+  .container { padding: 1rem; }
+  .hero { padding: 1.5rem 0 1rem; }
+  .hero p { font-size: 13px; }
+
+  /* Filters: smaller pills */
+  .filters { gap: 6px; }
+  .filter-btn { padding: 6px 12px; font-size: 11px; }
+
+  /* Stats: 2 per row */
   .stats-bar { gap: 0.5rem; }
+  .stat-chip { flex: 1 1 calc(50% - 0.25rem); justify-content: center; font-size: 11px; padding: 7px 10px; }
+
+  /* Cards: bigger touch targets */
+  .card-header { padding: 14px 12px; min-height: 48px; }
+  .card-body { padding: 0 12px 14px 44px; font-size: 12px; }
+  .card-check { width: 22px; height: 22px; }
+  .card-topic { font-size: 13px; }
+
+  /* Sections */
+  .section-title { font-size: 16px; }
 }
 
 /* ── View tabs ───────────────────────────────────────────────────────────────── */
@@ -440,10 +475,11 @@ a:hover { color: #7ee8df; text-decoration: underline; }
 /* ── Mobile tree ─────────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .view-tabs { gap: 2px; padding: 2px; }
-  .view-tab { padding: 4px 10px; font-size: 10px; }
+  .view-tab { padding: 5px 10px; font-size: 10px; }
   .tree-node { min-width: 80px; max-width: 110px; padding: 10px 10px; }
   .tree-node-label { font-size: 9px; }
   .tree-leaf { font-size: 10px; padding: 6px 10px; }
+  /* Popup slides up from bottom on mobile */
   .tree-popup {
     position: fixed;
     bottom: 0; left: 0; right: 0;
@@ -451,5 +487,6 @@ a:hover { color: #7ee8df; text-decoration: underline; }
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     width: 100%;
     top: auto !important;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
   }
 }
