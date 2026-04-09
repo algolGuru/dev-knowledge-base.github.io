@@ -435,6 +435,45 @@ a:hover { color: #7ee8df; text-decoration: underline; }
 
 .markdown-body > :first-child { margin-top: 0; }
 .markdown-body > :last-child { margin-bottom: 0; }
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6,
+.tree-popup-desc h1,
+.tree-popup-desc h2,
+.tree-popup-desc h3,
+.tree-popup-desc h4,
+.tree-popup-desc h5,
+.tree-popup-desc h6 {
+  color: #f6d365;
+  text-shadow: 0 0 18px rgba(246,211,101,0.10);
+  letter-spacing: 0.01em;
+  line-height: 1.25;
+  margin: 1.2rem 0 0.7rem;
+  font-weight: 600;
+}
+.markdown-body h1,
+.tree-popup-desc h1 {
+  font-size: 1.45rem;
+}
+.markdown-body h2,
+.tree-popup-desc h2 {
+  font-size: 1.22rem;
+}
+.markdown-body h3,
+.tree-popup-desc h3 {
+  font-size: 1.05rem;
+}
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6,
+.tree-popup-desc h4,
+.tree-popup-desc h5,
+.tree-popup-desc h6 {
+  font-size: 0.95rem;
+}
 .markdown-body p,
 .tree-popup-desc p {
   margin: 0 0 0.9rem;
