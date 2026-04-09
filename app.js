@@ -6,12 +6,38 @@ const sectionsEl = document.getElementById('sections');
 const emptyEl = document.getElementById('empty');
 const statsEl = document.getElementById('stats-bar');
 const searchEl = document.getElementById('search');
+const SITE_BASE_PATH = getSiteBasePath();
 
 if (window.marked) {
   marked.setOptions({
     gfm: true,
     breaks: true
   });
+}
+
+function getSiteBasePath() {
+  if (window.location.protocol === 'file:') return '';
+
+  const pathname = window.location.pathname;
+  const segments = pathname.split('/').filter(Boolean);
+  if (segments.length === 0) return '';
+
+  if (!pathname.endsWith('/')) segments.pop();
+  if (segments[segments.length - 1] === 'tree') segments.pop();
+
+  return segments.length > 0 ? `/${segments.join('/')}` : '';
+}
+
+function withSiteBasePath(url) {
+  if (!url || !url.startsWith('/')) return url;
+  return `${SITE_BASE_PATH}${url}`;
+}
+
+function rewriteStaticMediaPaths(html) {
+  return html.replace(
+    /(<img\b[^>]*\bsrc=["'])(\/[^"']+)(["'][^>]*>)/gi,
+    (_, prefix, url, suffix) => `${prefix}${withSiteBasePath(url)}${suffix}`
+  );
 }
 
 function buildFilters() {
@@ -103,8 +129,11 @@ function highlight(text, q) {
 }
 
 function renderMarkdown(text) {
-  if (window.marked) return marked.parse(text || '');
-  return `<p>${escapeHtml(text || '')}</p>`;
+  const html = window.marked
+    ? marked.parse(text || '')
+    : `<p>${escapeHtml(text || '')}</p>`;
+
+  return rewriteStaticMediaPaths(html);
 }
 
 function enhanceCodeBlocks(root = document) {

@@ -11,6 +11,33 @@ if (window.marked) {
   });
 }
 
+const SITE_BASE_PATH = getSiteBasePath();
+
+function getSiteBasePath() {
+  if (window.location.protocol === 'file:') return '';
+
+  const pathname = window.location.pathname;
+  const segments = pathname.split('/').filter(Boolean);
+  if (segments.length === 0) return '';
+
+  if (!pathname.endsWith('/')) segments.pop();
+  if (segments[segments.length - 1] === 'tree') segments.pop();
+
+  return segments.length > 0 ? `/${segments.join('/')}` : '';
+}
+
+function withSiteBasePath(url) {
+  if (!url || !url.startsWith('/')) return url;
+  return `${SITE_BASE_PATH}${url}`;
+}
+
+function rewriteStaticMediaPaths(html) {
+  return html.replace(
+    /(<img\b[^>]*\bsrc=["'])(\/[^"']+)(["'][^>]*>)/gi,
+    (_, prefix, url, suffix) => `${prefix}${withSiteBasePath(url)}${suffix}`
+  );
+}
+
 const FG = {
   nodes: [], links: [], nodeMap: {},
   svg: null, animId: null,
@@ -679,8 +706,11 @@ async function submitCommentFromTree(event, topicKey, topicTitle, sectionId, sec
 }
 
 function renderMarkdown(text) {
-  if (window.marked) return marked.parse(text || '');
-  return `<p>${escapeHtml(text || '')}</p>`;
+  const html = window.marked
+    ? marked.parse(text || '')
+    : `<p>${escapeHtml(text || '')}</p>`;
+
+  return rewriteStaticMediaPaths(html);
 }
 
 function escapeHtml(text) {
