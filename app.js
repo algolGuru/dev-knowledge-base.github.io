@@ -122,6 +122,14 @@ function renderCommentsBlock({ topicKey, topicTitle, sectionId, sectionTitle, co
       <div class="comment-item">
         <div class="comment-meta">
           <span>${escapeHtml(formatCommentDate(comment.createdAt) || '')}</span>
+          <div class="comment-actions">
+            <button
+              class="comment-delete"
+              type="button"
+              onclick="deleteCommentFromCard(event, '${topicKey}', '${escapeJs(String(comment.id ?? ''))}', '${escapeJs(comment.createdAt || '')}')">
+              Удалить
+            </button>
+          </div>
         </div>
         <div class="comment-text">${escapeHtml(comment.comment || '').replace(/\n/g, '<br>')}</div>
       </div>`).join('')
@@ -210,6 +218,40 @@ async function submitCommentFromCard(event, topicKey, topicTitle, sectionId, sec
     statusEl.textContent = err.message || 'Ошибка сохранения';
   } finally {
     submitBtn.disabled = false;
+  }
+}
+
+async function deleteCommentFromCard(event, topicKey, commentId, createdAt) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  const statusEl = document.getElementById(`comment-status-${topicKey}`);
+  const deleteBtn = event.currentTarget;
+
+  if (!commentId && !createdAt) {
+    statusEl.textContent = 'Невозможно удалить комментарий';
+    return;
+  }
+
+  if (!window.confirm('Удалить комментарий?')) {
+    return;
+  }
+
+  statusEl.textContent = 'Удаляю...';
+  deleteBtn.disabled = true;
+
+  try {
+    await deleteComment({ topicKey, id: commentId, createdAt });
+    buildSections();
+
+    const card = document.getElementById(`card-${topicKey}`);
+    if (card) card.classList.add('open');
+
+    const refreshedStatus = document.getElementById(`comment-status-${topicKey}`);
+    if (refreshedStatus) refreshedStatus.textContent = 'Комментарий удален';
+  } catch (err) {
+    statusEl.textContent = err.message || 'Ошибка удаления';
+    deleteBtn.disabled = false;
   }
 }
 

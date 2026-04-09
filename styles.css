@@ -353,6 +353,11 @@ a:hover { color: #7ee8df; text-decoration: underline; }
   color: var(--text-primary);
   font-weight: 600;
 }
+.comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .comment-text {
   white-space: normal;
   word-break: break-word;
@@ -423,6 +428,26 @@ a:hover { color: #7ee8df; text-decoration: underline; }
   border-color: rgba(79,209,197,0.4);
 }
 .comment-submit:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.comment-delete {
+  border: 1px solid rgba(251,113,133,0.24);
+  background: rgba(251,113,133,0.10);
+  color: var(--accent-rose);
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.comment-delete:hover {
+  background: rgba(251,113,133,0.16);
+  border-color: rgba(251,113,133,0.40);
+}
+.comment-delete:disabled {
   opacity: 0.6;
   cursor: wait;
 }

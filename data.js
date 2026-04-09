@@ -1314,7 +1314,7 @@ app.UseCors("spa");
 ];
 
 // ── Config ────────────────────────────────────────────────────────────────────
-const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyeDAWD2m7QLsR1KDCqn4_vT77kbJBsY-s45NSqA30DcTUxf1D_5wODHt-8pJp8vdjdFw/exec';
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbw9J7VGBV5hLNVVNM1KpCg6Zy0Nf2dzNkHQ_ZLBpYe9JiJZH1zogdVvUAMo08oICszLUw/exec';
 const STORAGE_KEY = 'devkb_learned';
 
 // ── Local state ───────────────────────────────────────────────────────────────
@@ -1375,6 +1375,35 @@ async function addCommentToSheets(payload) {
   } catch { return null; }
 }
 
+async function deleteCommentFromSheets(payload) {
+  const params = new URLSearchParams({ action: 'deleteComment' });
+  Object.entries(payload).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') params.set(k, String(v));
+  });
+
+  try {
+    const r = await fetch(`${SHEETS_URL}?${params.toString()}`, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) throw new Error('Не удалось удалить комментарий');
+
+    const d = await r.json();
+    if (!d || typeof d !== 'object')
+      throw new Error('Не удалось удалить комментарий');
+
+    if (d.error) {
+      if (String(d.error).toLowerCase().includes('unknown action')) {
+        throw new Error('Удаление комментариев пока не поддерживается на сервере');
+      }
+
+      throw new Error(String(d.error));
+    }
+
+    return d;
+  } catch (error) {
+    if (error instanceof Error) throw error;
+    throw new Error('Не удалось удалить комментарий');
+  }
+}
+
 function normalizeComment(comment) {
   return {
     id: comment.id || `${comment.topicKey}-${comment.createdAt || Date.now()}`,
@@ -1409,6 +1438,20 @@ function rememberCommentLocally(comment) {
   return normalized;
 }
 
+function removeCommentLocally({ topicKey, id, createdAt }) {
+  const comments = commentsByTopic[topicKey];
+  if (!Array.isArray(comments) || comments.length === 0) return null;
+
+  const index = comments.findIndex(comment =>
+    (id !== undefined && id !== null && String(comment.id) === String(id)) ||
+    (createdAt && comment.createdAt === createdAt));
+
+  if (index === -1) return null;
+
+  const [removed] = comments.splice(index, 1);
+  return removed ?? null;
+}
+
 async function submitComment(payload) {
   const trimmedComment = (payload.comment || '').trim();
 
@@ -1432,6 +1475,28 @@ async function submitComment(payload) {
     sectionTitle: payload.sectionTitle,
     comment: remote.comment || trimmedComment,
     createdAt: remote.createdAt || new Date().toISOString()
+  });
+}
+
+async function deleteComment(payload) {
+  if (!payload.topicKey) throw new Error('topicKey is required');
+  if (
+    (payload.id === undefined || payload.id === null || payload.id === '') &&
+    !payload.createdAt
+  ) {
+    throw new Error('comment identifier is required');
+  }
+
+  await deleteCommentFromSheets({
+    id: payload.id,
+    topicKey: payload.topicKey,
+    createdAt: payload.createdAt
+  });
+
+  return removeCommentLocally({
+    topicKey: payload.topicKey,
+    id: payload.id,
+    createdAt: payload.createdAt
   });
 }
 
