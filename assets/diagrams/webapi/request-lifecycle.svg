@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img" aria-label="HTTP request lifecycle, response events, and cancellation">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#6ee7b7"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="520" rx="28" fill="url(#bg)"/>
+  <text x="60" y="52" fill="#e2e8f0" font-family="JetBrains Mono, monospace" font-size="26" font-weight="700">Request lifecycle</text>
+  <text x="60" y="86" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="14">OnStarting runs before headers flush, OnCompleted runs after the response finishes</text>
+
+  <g font-family="JetBrains Mono, monospace" font-size="16" font-weight="700">
+    <rect x="70" y="190" width="150" height="110" rx="18" fill="rgba(96,165,250,0.12)" stroke="#60a5fa"/>
+    <text x="145" y="235" text-anchor="middle" fill="#dbeafe">Request</text>
+    <text x="145" y="261" text-anchor="middle" fill="#94a3b8" font-size="12">body / token</text>
+
+    <rect x="280" y="165" width="170" height="160" rx="18" fill="rgba(79,209,197,0.12)" stroke="#4fd1c5"/>
+    <text x="365" y="210" text-anchor="middle" fill="#cffafe">Action / middleware</text>
+    <text x="365" y="238" text-anchor="middle" fill="#94a3b8" font-size="12">register callbacks</text>
+    <text x="365" y="260" text-anchor="middle" fill="#94a3b8" font-size="12">capture RequestAborted</text>
+
+    <rect x="505" y="145" width="190" height="200" rx="18" fill="rgba(251,173,85,0.10)" stroke="#f6ad55"/>
+    <text x="600" y="190" text-anchor="middle" fill="#fff7ed">OnStarting</text>
+    <text x="600" y="218" text-anchor="middle" fill="#94a3b8" font-size="12">last chance for headers</text>
+    <text x="600" y="240" text-anchor="middle" fill="#94a3b8" font-size="12">status code / cookies</text>
+    <text x="600" y="262" text-anchor="middle" fill="#94a3b8" font-size="12">before first body byte</text>
+
+    <rect x="760" y="145" width="190" height="200" rx="18" fill="rgba(167,139,250,0.10)" stroke="#a78bfa"/>
+    <text x="855" y="190" text-anchor="middle" fill="#f3e8ff">Body streaming</text>
+    <text x="855" y="218" text-anchor="middle" fill="#94a3b8" font-size="12">headers are now fixed</text>
+    <text x="855" y="240" text-anchor="middle" fill="#94a3b8" font-size="12">write chunks / flush</text>
+    <text x="855" y="262" text-anchor="middle" fill="#94a3b8" font-size="12">abort token can cancel</text>
+
+    <rect x="1000" y="190" width="130" height="110" rx="18" fill="rgba(110,231,183,0.10)" stroke="#6ee7b7"/>
+    <text x="1065" y="235" text-anchor="middle" fill="#dcfce7">OnCompleted</text>
+    <text x="1065" y="261" text-anchor="middle" fill="#94a3b8" font-size="12">cleanup / log</text>
+  </g>
+
+  <g stroke="#6ee7b7" stroke-width="4" fill="none" marker-end="url(#arrow)">
+    <path d="M220 245H280"/>
+    <path d="M450 245H505"/>
+    <path d="M695 245H760"/>
+    <path d="M950 245H1000"/>
+  </g>
+
+  <path d="M365 365C455 430, 585 430, 660 365" fill="none" stroke="#fb7185" stroke-width="4" stroke-dasharray="8 8"/>
+  <text x="510" y="455" text-anchor="middle" fill="#fb7185" font-family="JetBrains Mono, monospace" font-size="13">client disconnect -> RequestAborted</text>
+</svg>

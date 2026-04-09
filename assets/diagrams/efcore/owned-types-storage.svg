@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img" aria-label="Owned entity storage options">
+  <rect width="1200" height="700" fill="#0b1020"/>
+  <text x="64" y="92" fill="#e8e6f0" font-size="34" font-family="Inter, Segoe UI, sans-serif" font-weight="700">Owned type can live with or apart from owner</text>
+  <text x="64" y="128" fill="#9ca3af" font-size="18" font-family="Inter, Segoe UI, sans-serif">table splitting, separate table, value object boundary</text>
+
+  <g font-family="Inter, Segoe UI, sans-serif">
+    <rect x="90" y="205" width="480" height="240" rx="24" fill="#121a2a" stroke="#60a5fa" stroke-width="2"/>
+    <text x="330" y="244" text-anchor="middle" fill="#e8e6f0" font-size="22" font-weight="700">Single table / split table</text>
+    <rect x="135" y="285" width="390" height="116" rx="16" fill="#1b2740" stroke="#4fd1c5" stroke-width="2"/>
+    <text x="330" y="322" text-anchor="middle" fill="#e8e6f0" font-size="20" font-weight="700">Owner columns</text>
+    <text x="330" y="354" text-anchor="middle" fill="#9ca3af" font-size="16">Id, Status, Total</text>
+    <text x="330" y="380" text-anchor="middle" fill="#9ca3af" font-size="16">ShippingAddress_Street, City</text>
+
+    <rect x="650" y="205" width="470" height="240" rx="24" fill="#121a2a" stroke="#f6ad55" stroke-width="2"/>
+    <text x="885" y="244" text-anchor="middle" fill="#e8e6f0" font-size="22" font-weight="700">Separate table</text>
+    <rect x="685" y="286" width="180" height="112" rx="16" fill="#1b2740" stroke="#60a5fa" stroke-width="2"/>
+    <text x="775" y="326" text-anchor="middle" fill="#e8e6f0" font-size="19" font-weight="700">Orders</text>
+    <text x="775" y="356" text-anchor="middle" fill="#9ca3af" font-size="16">owner data</text>
+    <rect x="900" y="286" width="180" height="112" rx="16" fill="#1b2740" stroke="#4fd1c5" stroke-width="2"/>
+    <text x="990" y="326" text-anchor="middle" fill="#e8e6f0" font-size="19" font-weight="700">OrderDetails</text>
+    <text x="990" y="356" text-anchor="middle" fill="#9ca3af" font-size="16">owned data</text>
+  </g>
+
+  <path d="M595 324H648" stroke="#f6ad55" stroke-width="5" fill="none"/>
+  <path d="M860 324H894" stroke="#4fd1c5" stroke-width="5" fill="none"/>
+  <text x="623" y="305" fill="#f6d365" font-family="Inter, Segoe UI, sans-serif" font-size="17">share identity</text>
+  <text x="876" y="305" fill="#f6d365" font-family="Inter, Segoe UI, sans-serif" font-size="17">split boundary</text>
+
+  <g font-family="Inter, Segoe UI, sans-serif">
+    <rect x="260" y="498" width="680" height="96" rx="18" fill="#0f172a" stroke="#64748b" stroke-width="2"/>
+    <text x="600" y="536" text-anchor="middle" fill="#e8e6f0" font-size="20" font-weight="600">Use owned types for value-object-like data that has no independent lifecycle</text>
+    <text x="600" y="566" text-anchor="middle" fill="#9ca3af" font-size="16">promote to entity when it needs identity, sharing, or its own behavior</text>
+  </g>
+</svg>

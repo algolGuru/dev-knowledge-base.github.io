@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 170" width="300" height="170" role="img" aria-labelledby="title desc">
+  <title id="title">Transaction boundaries</title>
+  <desc id="desc">Each aggregate has its own transaction boundary; cross-aggregate coordination uses events.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#181a24"/>
+      <stop offset="100%" stop-color="#12131a"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#fb7185"/>
+    </marker>
+  </defs>
+  <rect x="1" y="1" width="298" height="168" rx="14" fill="url(#bg)" stroke="rgba(255,255,255,0.08)"/>
+  <text x="16" y="22" fill="#f6d365" font-family="monospace" font-size="12" font-weight="700">Transaction boundaries</text>
+  <text x="16" y="38" fill="#9895a8" font-family="monospace" font-size="9">One transaction per aggregate root</text>
+
+  <rect x="20" y="55" width="94" height="72" rx="12" fill="none" stroke="#a78bfa" stroke-width="1.4" stroke-dasharray="5 4"/>
+  <text x="32" y="74" fill="#a78bfa" font-family="monospace" font-size="10" font-weight="700">Order</text>
+  <rect x="32" y="83" width="70" height="22" rx="6" fill="#1d2334" stroke="#60a5fa" stroke-width="1"/>
+  <text x="47" y="98" fill="#e8e6f0" font-family="monospace" font-size="8">root state</text>
+
+  <rect x="186" y="55" width="94" height="72" rx="12" fill="none" stroke="#a78bfa" stroke-width="1.4" stroke-dasharray="5 4"/>
+  <text x="198" y="74" fill="#a78bfa" font-family="monospace" font-size="10" font-weight="700">Buyer</text>
+  <rect x="198" y="83" width="70" height="22" rx="6" fill="#1d2334" stroke="#60a5fa" stroke-width="1"/>
+  <text x="213" y="98" fill="#e8e6f0" font-family="monospace" font-size="8">root state</text>
+
+  <path d="M114 91 H184" fill="none" stroke="#fb7185" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+  <text x="129" y="85" fill="#fb7185" font-family="monospace" font-size="8">event</text>
+</svg>

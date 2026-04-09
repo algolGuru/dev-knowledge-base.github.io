@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img" aria-label="EF Core change tracker states">
+  <rect width="1200" height="700" fill="#0b1020"/>
+  <text x="64" y="92" fill="#e8e6f0" font-size="34" font-family="Inter, Segoe UI, sans-serif" font-weight="700">Change tracker walks entity state</text>
+  <text x="64" y="128" fill="#9ca3af" font-size="18" font-family="Inter, Segoe UI, sans-serif">detached, added, unchanged, modified, deleted</text>
+
+  <g font-family="Inter, Segoe UI, sans-serif" font-size="20" font-weight="700">
+    <rect x="90" y="250" width="170" height="88" rx="18" fill="#162036" stroke="#60a5fa" stroke-width="2"/>
+    <text x="175" y="302" text-anchor="middle" fill="#e8e6f0">Detached</text>
+
+    <rect x="324" y="250" width="170" height="88" rx="18" fill="#162036" stroke="#4fd1c5" stroke-width="2"/>
+    <text x="409" y="302" text-anchor="middle" fill="#e8e6f0">Added</text>
+
+    <rect x="558" y="250" width="170" height="88" rx="18" fill="#162036" stroke="#f6ad55" stroke-width="2"/>
+    <text x="643" y="302" text-anchor="middle" fill="#e8e6f0">Unchanged</text>
+
+    <rect x="792" y="250" width="170" height="88" rx="18" fill="#162036" stroke="#a78bfa" stroke-width="2"/>
+    <text x="877" y="302" text-anchor="middle" fill="#e8e6f0">Modified</text>
+
+    <rect x="1026" y="250" width="120" height="88" rx="18" fill="#162036" stroke="#fb7185" stroke-width="2"/>
+    <text x="1086" y="302" text-anchor="middle" fill="#e8e6f0">Deleted</text>
+  </g>
+
+  <g stroke="#64748b" stroke-width="4" fill="none" font-family="Inter, Segoe UI, sans-serif" font-size="16">
+    <path d="M260 294H320"/>
+    <path d="M494 294H554"/>
+    <path d="M728 294H788"/>
+    <path d="M962 294H1020"/>
+    <path d="M643 338V430c0 42-18 60-60 60H409c-42 0-60-18-60-60v-22"/>
+  </g>
+
+  <g font-family="Inter, Segoe UI, sans-serif" fill="#9ca3af" font-size="16">
+    <text x="176" y="382" text-anchor="middle">Attach / query</text>
+    <text x="409" y="382" text-anchor="middle">SaveChanges</text>
+    <text x="643" y="382" text-anchor="middle">no changes</text>
+    <text x="877" y="382" text-anchor="middle">detect update</text>
+    <text x="1086" y="382" text-anchor="middle">remove</text>
+  </g>
+
+  <path d="M409 338V430" stroke="#4fd1c5" stroke-width="5" stroke-dasharray="10 8"/>
+  <path d="M643 338V430" stroke="#f6ad55" stroke-width="5" stroke-dasharray="10 8"/>
+  <path d="M877 338V430" stroke="#a78bfa" stroke-width="5" stroke-dasharray="10 8"/>
+  <text x="600" y="560" text-anchor="middle" fill="#f6d365" font-family="Inter, Segoe UI, sans-serif" font-size="18">SaveChanges inspects state and sends only the needed SQL</text>
+</svg>

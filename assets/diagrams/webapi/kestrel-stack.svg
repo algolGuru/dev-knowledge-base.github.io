@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img" aria-label="Kestrel hosting stack">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#60a5fa"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="520" rx="28" fill="url(#bg)"/>
+  <text x="60" y="52" fill="#e2e8f0" font-family="JetBrains Mono, monospace" font-size="26" font-weight="700">Kestrel hosting stack</text>
+  <text x="60" y="86" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="14">Kestrel is the server; limits defend the edge</text>
+
+  <g font-family="JetBrains Mono, monospace" font-size="16" font-weight="700">
+    <rect x="70" y="185" width="150" height="130" rx="18" fill="rgba(96,165,250,0.12)" stroke="#60a5fa"/>
+    <text x="145" y="230" text-anchor="middle" fill="#dbeafe">Client</text>
+    <text x="145" y="256" text-anchor="middle" fill="#94a3b8" font-size="12">browser / app</text>
+
+    <rect x="270" y="155" width="170" height="190" rx="18" fill="rgba(79,209,197,0.12)" stroke="#4fd1c5"/>
+    <text x="355" y="205" text-anchor="middle" fill="#cffafe">Reverse proxy</text>
+    <text x="355" y="233" text-anchor="middle" fill="#94a3b8" font-size="12">nginx / IIS / YARP</text>
+    <text x="355" y="255" text-anchor="middle" fill="#94a3b8" font-size="12">TLS termination</text>
+    <text x="355" y="277" text-anchor="middle" fill="#94a3b8" font-size="12">optional hop</text>
+
+    <rect x="500" y="150" width="170" height="200" rx="18" fill="rgba(167,139,250,0.10)" stroke="#a78bfa"/>
+    <text x="585" y="200" text-anchor="middle" fill="#f3e8ff">Kestrel</text>
+    <text x="585" y="228" text-anchor="middle" fill="#94a3b8" font-size="12">cross-platform server</text>
+    <text x="585" y="250" text-anchor="middle" fill="#94a3b8" font-size="12">sockets, HTTP/1.1</text>
+    <text x="585" y="272" text-anchor="middle" fill="#94a3b8" font-size="12">HTTP/2, HTTP/3</text>
+    <text x="585" y="294" text-anchor="middle" fill="#94a3b8" font-size="12">KestrelServerOptions</text>
+
+    <rect x="725" y="155" width="180" height="190" rx="18" fill="rgba(110,231,183,0.10)" stroke="#6ee7b7"/>
+    <text x="815" y="205" text-anchor="middle" fill="#dcfce7">Limits</text>
+    <text x="815" y="233" text-anchor="middle" fill="#94a3b8" font-size="12">body / headers / line</text>
+    <text x="815" y="255" text-anchor="middle" fill="#94a3b8" font-size="12">timeouts / concurrency</text>
+    <text x="815" y="277" text-anchor="middle" fill="#94a3b8" font-size="12">protects memory</text>
+
+    <rect x="965" y="185" width="160" height="130" rx="18" fill="rgba(251,173,85,0.10)" stroke="#f6ad55"/>
+    <text x="1045" y="230" text-anchor="middle" fill="#fff7ed">App pipeline</text>
+    <text x="1045" y="256" text-anchor="middle" fill="#94a3b8" font-size="12">middleware + endpoints</text>
+  </g>
+
+  <g stroke="#60a5fa" stroke-width="4" fill="none" marker-end="url(#arrow)">
+    <path d="M220 250H270"/>
+    <path d="M440 250H500"/>
+    <path d="M670 250H725"/>
+    <path d="M905 250H965"/>
+  </g>
+</svg>

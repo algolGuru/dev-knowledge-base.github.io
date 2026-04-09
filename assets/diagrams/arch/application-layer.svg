@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" role="img" aria-labelledby="title desc">
+  <title id="title">Application Layer</title>
+  <desc id="desc">A use case pipeline from request to handler, domain model, ports, and response.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#10131d"/>
+      <stop offset="100%" stop-color="#151a29"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="360" rx="28" fill="url(#bg)"/>
+  <rect x="24" y="24" width="912" height="312" rx="22" fill="none" stroke="#ffffff" stroke-opacity="0.08"/>
+  <text x="44" y="58" fill="#e8e6f0" font-size="24" font-family="Inter,Segoe UI,Arial,sans-serif" font-weight="700">Application layer</text>
+  <text x="44" y="83" fill="#9895a8" font-size="13" font-family="JetBrains Mono,monospace">orchestrates the use case, but does not own the rules</text>
+
+  <g font-family="JetBrains Mono,monospace" font-size="13">
+    <rect x="62" y="146" width="142" height="70" rx="18" fill="#60a5fa" fill-opacity="0.12" stroke="#60a5fa" stroke-opacity="0.35"/>
+    <text x="133" y="176" text-anchor="middle" fill="#dfefff">Request /</text>
+    <text x="133" y="194" text-anchor="middle" fill="#dfefff">Command</text>
+
+    <rect x="241" y="146" width="166" height="70" rx="18" fill="#a78bfa" fill-opacity="0.12" stroke="#a78bfa" stroke-opacity="0.35"/>
+    <text x="324" y="176" text-anchor="middle" fill="#f0e8ff">Handler</text>
+    <text x="324" y="194" text-anchor="middle" fill="#f0e8ff">use case logic</text>
+
+    <rect x="444" y="146" width="152" height="70" rx="18" fill="#4fd1c5" fill-opacity="0.12" stroke="#4fd1c5" stroke-opacity="0.35"/>
+    <text x="520" y="176" text-anchor="middle" fill="#e7fffb">Domain</text>
+    <text x="520" y="194" text-anchor="middle" fill="#e7fffb">model</text>
+
+    <rect x="633" y="146" width="154" height="70" rx="18" fill="#f6ad55" fill-opacity="0.12" stroke="#f6ad55" stroke-opacity="0.38"/>
+    <text x="710" y="176" text-anchor="middle" fill="#fff0df">Ports</text>
+    <text x="710" y="194" text-anchor="middle" fill="#fff0df">repositories</text>
+
+    <rect x="824" y="146" width="84" height="70" rx="18" fill="#fb7185" fill-opacity="0.12" stroke="#fb7185" stroke-opacity="0.35"/>
+    <text x="866" y="176" text-anchor="middle" fill="#ffe0e6">Result</text>
+    <text x="866" y="194" text-anchor="middle" fill="#ffe0e6">DTO</text>
+  </g>
+
+  <g fill="none" stroke="#ffffff" stroke-opacity="0.45" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M204 181H241"/>
+    <path d="M407 181H444"/>
+    <path d="M596 181H633"/>
+    <path d="M787 181H824"/>
+  </g>
+
+  <rect x="88" y="252" width="784" height="44" rx="22" fill="#ffffff" fill-opacity="0.04" stroke="#ffffff" stroke-opacity="0.08"/>
+  <text x="480" y="279" text-anchor="middle" fill="#b9c3da" font-size="12" font-family="JetBrains Mono,monospace">Transaction boundary, mapping, idempotency, and policy checks belong here</text>
+</svg>

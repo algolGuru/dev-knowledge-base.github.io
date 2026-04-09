@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img" aria-label="Value conversion flow">
+  <rect width="1200" height="700" fill="#0b1020"/>
+  <text x="64" y="92" fill="#e8e6f0" font-size="34" font-family="Inter, Segoe UI, sans-serif" font-weight="700">A value object becomes a store-friendly scalar</text>
+  <text x="64" y="128" fill="#9ca3af" font-size="18" font-family="Inter, Segoe UI, sans-serif">convert on write, restore on read, compare correctly</text>
+
+  <g font-family="Inter, Segoe UI, sans-serif">
+    <rect x="80" y="250" width="250" height="120" rx="20" fill="#122031" stroke="#60a5fa" stroke-width="2"/>
+    <text x="205" y="298" text-anchor="middle" fill="#e8e6f0" font-size="22" font-weight="700">Domain type</text>
+    <text x="205" y="330" text-anchor="middle" fill="#9ca3af" font-size="16">Money, Email, Currency</text>
+
+    <rect x="475" y="250" width="250" height="120" rx="20" fill="#171c2a" stroke="#4fd1c5" stroke-width="2"/>
+    <text x="600" y="298" text-anchor="middle" fill="#e8e6f0" font-size="22" font-weight="700">Value converter</text>
+    <text x="600" y="330" text-anchor="middle" fill="#9ca3af" font-size="16">serialize / deserialize</text>
+
+    <rect x="870" y="250" width="250" height="120" rx="20" fill="#1b2740" stroke="#f6ad55" stroke-width="2"/>
+    <text x="995" y="298" text-anchor="middle" fill="#e8e6f0" font-size="22" font-weight="700">Database column</text>
+    <text x="995" y="330" text-anchor="middle" fill="#9ca3af" font-size="16">string, int, json, bytes</text>
+  </g>
+
+  <path d="M330 310H470" stroke="#60a5fa" stroke-width="5"/>
+  <path d="M725 310H865" stroke="#4fd1c5" stroke-width="5"/>
+  <text x="400" y="290" fill="#f6d365" font-family="Inter, Segoe UI, sans-serif" font-size="17">write</text>
+  <text x="795" y="290" fill="#f6d365" font-family="Inter, Segoe UI, sans-serif" font-size="17">persist</text>
+
+  <g font-family="Inter, Segoe UI, sans-serif">
+    <rect x="315" y="468" width="570" height="92" rx="18" fill="#0f172a" stroke="#64748b" stroke-width="2"/>
+    <text x="600" y="506" text-anchor="middle" fill="#e8e6f0" font-size="20" font-weight="600">If the value is mutable or reused in relationships, add a value comparer</text>
+    <text x="600" y="536" text-anchor="middle" fill="#9ca3af" font-size="16">snapshot, equality, and hash code must match the conversion</text>
+  </g>
+</svg>

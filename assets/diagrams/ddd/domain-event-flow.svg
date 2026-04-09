@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 170" width="300" height="170" role="img" aria-labelledby="title desc">
+  <title id="title">Domain event flow</title>
+  <desc id="desc">Aggregate raises a fact, handlers react in the application layer.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#181a24"/>
+      <stop offset="100%" stop-color="#12131a"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#4fd1c5"/>
+    </marker>
+  </defs>
+  <rect x="1" y="1" width="298" height="168" rx="14" fill="url(#bg)" stroke="rgba(255,255,255,0.08)"/>
+  <text x="16" y="22" fill="#f6d365" font-family="monospace" font-size="12" font-weight="700">Domain event flow</text>
+
+  <rect x="16" y="62" width="72" height="44" rx="10" fill="#1d2334" stroke="#60a5fa" stroke-width="1.2"/>
+  <text x="31" y="80" fill="#60a5fa" font-family="monospace" font-size="9" font-weight="700">Aggregate</text>
+  <text x="26" y="94" fill="#9895a8" font-family="monospace" font-size="8">state changes</text>
+
+  <rect x="112" y="56" width="76" height="56" rx="12" fill="#1f1f2f" stroke="#a78bfa" stroke-width="1.4"/>
+  <text x="126" y="79" fill="#a78bfa" font-family="monospace" font-size="10" font-weight="700">Domain event</text>
+  <text x="122" y="93" fill="#e8e6f0" font-family="monospace" font-size="8">fact, not command</text>
+
+  <rect x="214" y="56" width="68" height="56" rx="12" fill="#182030" stroke="#6ee7b7" stroke-width="1.2"/>
+  <text x="228" y="79" fill="#6ee7b7" font-family="monospace" font-size="9" font-weight="700">Handler</text>
+  <text x="221" y="93" fill="#9895a8" font-family="monospace" font-size="8">email / read model</text>
+
+  <path d="M88 84 H110" fill="none" stroke="#4fd1c5" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <path d="M190 84 H212" fill="none" stroke="#4fd1c5" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <text x="64" y="132" fill="#fb923c" font-family="monospace" font-size="8">react later, do not push side effects into the aggregate</text>
+</svg>

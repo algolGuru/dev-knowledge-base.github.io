@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img" aria-label="ASP.NET Core startup pipeline">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#4fd1c5"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#7dd3fc"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="520" rx="28" fill="url(#bg)"/>
+  <g fill="none" stroke="rgba(255,255,255,0.08)">
+    <path d="M60 80H1140M60 440H1140"/>
+  </g>
+  <text x="60" y="52" fill="#e2e8f0" font-family="JetBrains Mono, monospace" font-size="26" font-weight="700">Startup split</text>
+  <text x="60" y="86" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="14">services first, pipeline second</text>
+
+  <g font-family="JetBrains Mono, monospace" font-size="18" font-weight="700">
+    <rect x="70" y="170" width="210" height="110" rx="18" fill="rgba(79,209,197,0.10)" stroke="#4fd1c5"/>
+    <text x="175" y="210" text-anchor="middle" fill="#d9fffb">Program / Host</text>
+    <text x="175" y="238" text-anchor="middle" fill="#94a3b8" font-size="13">CreateBuilder()</text>
+
+    <rect x="330" y="150" width="250" height="150" rx="18" fill="rgba(96,165,250,0.10)" stroke="#60a5fa"/>
+    <text x="455" y="195" text-anchor="middle" fill="#dbeafe">ConfigureServices</text>
+    <text x="455" y="223" text-anchor="middle" fill="#94a3b8" font-size="13">builder.Services</text>
+    <text x="455" y="249" text-anchor="middle" fill="#94a3b8" font-size="13">DI, options, logging</text>
+
+    <rect x="650" y="150" width="250" height="150" rx="18" fill="rgba(167,139,250,0.10)" stroke="#a78bfa"/>
+    <text x="775" y="195" text-anchor="middle" fill="#ede9fe">Build pipeline</text>
+    <text x="775" y="223" text-anchor="middle" fill="#94a3b8" font-size="13">app.Use(...)</text>
+    <text x="775" y="249" text-anchor="middle" fill="#94a3b8" font-size="13">routing, auth, endpoints</text>
+
+    <rect x="970" y="170" width="160" height="110" rx="18" fill="rgba(251,191,36,0.10)" stroke="#f6ad55"/>
+    <text x="1050" y="210" text-anchor="middle" fill="#fef3c7">Run</text>
+    <text x="1050" y="238" text-anchor="middle" fill="#94a3b8" font-size="13">start app</text>
+  </g>
+
+  <g stroke="url(#accent)" stroke-width="4" fill="none" marker-end="url(#arrow)">
+    <path d="M280 225H330"/>
+    <path d="M580 225H650"/>
+    <path d="M900 225H970"/>
+  </g>
+
+  <g font-family="JetBrains Mono, monospace" font-size="13" fill="#cbd5e1">
+    <text x="330" y="340">Register abstractions, implementations, options</text>
+    <text x="650" y="340">Compose middleware in order</text>
+  </g>
+</svg>

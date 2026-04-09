@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img" aria-label="Tracking versus no-tracking queries">
+  <rect width="1200" height="700" fill="#0b1020"/>
+  <text x="64" y="92" fill="#e8e6f0" font-size="34" font-family="Inter, Segoe UI, sans-serif" font-weight="700">Tracking is stateful, no-tracking is read-only</text>
+  <text x="64" y="128" fill="#9ca3af" font-size="18" font-family="Inter, Segoe UI, sans-serif">identity resolution, snapshots, update path</text>
+
+  <g font-family="Inter, Segoe UI, sans-serif">
+    <rect x="80" y="200" width="440" height="300" rx="24" fill="#122031" stroke="#60a5fa" stroke-width="2"/>
+    <text x="300" y="242" text-anchor="middle" fill="#e8e6f0" font-size="24" font-weight="700">Tracking query</text>
+    <rect x="120" y="286" width="160" height="92" rx="16" fill="#1b2740" stroke="#4fd1c5" stroke-width="2"/>
+    <text x="200" y="324" text-anchor="middle" fill="#e8e6f0" font-size="19" font-weight="700">Entity</text>
+    <text x="200" y="350" text-anchor="middle" fill="#9ca3af" font-size="15">tracked</text>
+    <rect x="322" y="286" width="160" height="92" rx="16" fill="#1b2740" stroke="#f6ad55" stroke-width="2"/>
+    <text x="402" y="324" text-anchor="middle" fill="#e8e6f0" font-size="19" font-weight="700">ChangeTracker</text>
+    <text x="402" y="350" text-anchor="middle" fill="#9ca3af" font-size="15">snapshot + fix-up</text>
+    <text x="300" y="430" text-anchor="middle" fill="#9ca3af" font-size="17">good for query + update in one unit of work</text>
+
+    <rect x="680" y="200" width="440" height="300" rx="24" fill="#171c2a" stroke="#a78bfa" stroke-width="2"/>
+    <text x="900" y="242" text-anchor="middle" fill="#e8e6f0" font-size="24" font-weight="700">No-tracking query</text>
+    <rect x="726" y="286" width="160" height="92" rx="16" fill="#1b2740" stroke="#60a5fa" stroke-width="2"/>
+    <text x="806" y="324" text-anchor="middle" fill="#e8e6f0" font-size="19" font-weight="700">Entity</text>
+    <text x="806" y="350" text-anchor="middle" fill="#9ca3af" font-size="15">materialized only</text>
+    <rect x="928" y="286" width="160" height="92" rx="16" fill="#1b2740" stroke="#fb7185" stroke-width="2"/>
+    <text x="1008" y="324" text-anchor="middle" fill="#e8e6f0" font-size="19" font-weight="700">No state</text>
+    <text x="1008" y="350" text-anchor="middle" fill="#9ca3af" font-size="15">faster reads</text>
+    <text x="900" y="430" text-anchor="middle" fill="#9ca3af" font-size="17">good for pure reads, projections, API lists</text>
+  </g>
+
+  <path d="M520 350H676" stroke="#64748b" stroke-width="4" stroke-dasharray="10 8" fill="none"/>
+  <text x="598" y="334" fill="#f6d365" font-family="Inter, Segoe UI, sans-serif" font-size="17" text-anchor="middle">same entity shape, different lifecycle</text>
+</svg>

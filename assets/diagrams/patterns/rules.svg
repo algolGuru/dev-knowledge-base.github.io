@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 480" width="320" height="160" role="img" aria-label="When to use patterns diagram">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#241b10"/>
+      <stop offset="100%" stop-color="#0b0d11"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#fb923c"/>
+      <stop offset="100%" stop-color="#f6ad55"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="480" rx="28" fill="url(#bg)"/>
+  <rect x="24" y="24" width="912" height="432" rx="22" fill="none" stroke="#ffffff" stroke-opacity="0.08"/>
+  <text x="56" y="80" fill="#ffe8c7" font-size="34" font-family="JetBrains Mono, Consolas, monospace" font-weight="700">WHEN TO USE</text>
+  <text x="56" y="118" fill="#baa58c" font-size="22" font-family="JetBrains Mono, Consolas, monospace">Problem -> variation -> repeatability -> pattern</text>
+
+  <g>
+    <rect x="64" y="178" width="180" height="96" rx="18" fill="#20170f" stroke="#fb923c" stroke-width="3"/>
+    <text x="154" y="214" fill="#fff7ed" font-size="24" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace">Repeated</text>
+    <text x="154" y="246" fill="#fff7ed" font-size="24" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace">problem?</text>
+  </g>
+
+  <g>
+    <rect x="324" y="118" width="170" height="70" rx="16" fill="#2a1d11" stroke="#fb923c" stroke-width="2"/>
+    <text x="409" y="162" fill="#ffedd5" font-size="22" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace">1 solution</text>
+    <rect x="324" y="216" width="170" height="70" rx="16" fill="#2a1d11" stroke="#fb923c" stroke-width="2"/>
+    <text x="409" y="260" fill="#ffedd5" font-size="22" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace">Many variants</text>
+    <rect x="324" y="314" width="170" height="70" rx="16" fill="#2a1d11" stroke="#fb923c" stroke-width="2"/>
+    <text x="409" y="358" fill="#ffedd5" font-size="22" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace">Real change</text>
+  </g>
+
+  <g stroke="url(#accent)" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M244 226 H304"/>
+    <path d="M288 218 L304 226 L288 234"/>
+    <path d="M494 152 H620"/>
+    <path d="M604 144 L620 152 L604 160"/>
+    <path d="M494 250 H620"/>
+    <path d="M604 242 L620 250 L604 258"/>
+    <path d="M494 348 H620"/>
+    <path d="M604 340 L620 348 L604 356"/>
+  </g>
+
+  <g>
+    <rect x="640" y="122" width="252" height="236" rx="22" fill="#161a20" stroke="#ffffff" stroke-opacity="0.08" stroke-width="2"/>
+    <text x="766" y="170" fill="#fff0d9" font-size="24" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace">Apply pattern</text>
+    <text x="766" y="214" fill="#baa58c" font-size="19" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace">only if it reduces change cost</text>
+    <text x="766" y="256" fill="#baa58c" font-size="19" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace">and improves clarity or tests</text>
+    <text x="766" y="298" fill="#baa58c" font-size="19" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace">otherwise keep it simple</text>
+  </g>
+</svg>

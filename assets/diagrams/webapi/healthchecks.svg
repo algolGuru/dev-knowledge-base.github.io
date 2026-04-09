@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img" aria-label="ASP.NET Core health checks flow">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#6ee7b7"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="520" rx="28" fill="url(#bg)"/>
+  <text x="60" y="52" fill="#e2e8f0" font-family="JetBrains Mono, monospace" font-size="26" font-weight="700">Health checks</text>
+  <text x="60" y="86" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="14">register checks, map an endpoint, tailor status codes and response payload</text>
+
+  <g font-family="JetBrains Mono, monospace" font-size="16" font-weight="700">
+    <rect x="60" y="170" width="180" height="140" rx="18" fill="rgba(96,165,250,0.12)" stroke="#60a5fa"/>
+    <text x="150" y="215" text-anchor="middle" fill="#dbeafe">AddHealthChecks()</text>
+    <text x="150" y="243" text-anchor="middle" fill="#94a3b8" font-size="12">database</text>
+    <text x="150" y="265" text-anchor="middle" fill="#94a3b8" font-size="12">redis / queue</text>
+
+    <rect x="300" y="155" width="205" height="170" rx="18" fill="rgba(79,209,197,0.12)" stroke="#4fd1c5"/>
+    <text x="402" y="200" text-anchor="middle" fill="#cffafe">MapHealthChecks()</text>
+    <text x="402" y="228" text-anchor="middle" fill="#94a3b8" font-size="12">/healthz</text>
+    <text x="402" y="250" text-anchor="middle" fill="#94a3b8" font-size="12">host / auth / CORS</text>
+    <text x="402" y="272" text-anchor="middle" fill="#94a3b8" font-size="12">Predicate tags</text>
+
+    <rect x="565" y="130" width="215" height="220" rx="18" fill="rgba(167,139,250,0.10)" stroke="#a78bfa"/>
+    <text x="672" y="176" text-anchor="middle" fill="#f3e8ff">HealthCheckOptions</text>
+    <text x="672" y="206" text-anchor="middle" fill="#94a3b8" font-size="12">200 / 503 mapping</text>
+    <text x="672" y="228" text-anchor="middle" fill="#94a3b8" font-size="12">cache headers</text>
+    <text x="672" y="250" text-anchor="middle" fill="#94a3b8" font-size="12">custom ResponseWriter</text>
+    <text x="672" y="272" text-anchor="middle" fill="#94a3b8" font-size="12">healthy / degraded / unhealthy</text>
+
+    <rect x="845" y="170" width="160" height="140" rx="18" fill="rgba(110,231,183,0.10)" stroke="#6ee7b7"/>
+    <text x="925" y="215" text-anchor="middle" fill="#dcfce7">Probe result</text>
+    <text x="925" y="243" text-anchor="middle" fill="#94a3b8" font-size="12">plain or JSON</text>
+
+    <rect x="1045" y="170" width="100" height="140" rx="18" fill="rgba(251,173,85,0.10)" stroke="#f6ad55"/>
+    <text x="1095" y="215" text-anchor="middle" fill="#fff7ed">Monitor</text>
+    <text x="1095" y="243" text-anchor="middle" fill="#94a3b8" font-size="12">k8s / LB</text>
+  </g>
+
+  <g stroke="#6ee7b7" stroke-width="4" fill="none" marker-end="url(#arrow)">
+    <path d="M240 240H300"/>
+    <path d="M505 240H565"/>
+    <path d="M780 240H845"/>
+    <path d="M1005 240H1045"/>
+  </g>
+</svg>

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img" aria-label="Related data loading strategies">
+  <rect width="1200" height="700" fill="#0b1020"/>
+  <text x="64" y="92" fill="#e8e6f0" font-size="34" font-family="Inter, Segoe UI, sans-serif" font-weight="700">Three ways to load related data</text>
+  <text x="64" y="128" fill="#9ca3af" font-size="18" font-family="Inter, Segoe UI, sans-serif">eager, explicit, lazy</text>
+
+  <g font-family="Inter, Segoe UI, sans-serif">
+    <rect x="60" y="200" width="330" height="300" rx="24" fill="#122031" stroke="#60a5fa" stroke-width="2"/>
+    <text x="225" y="242" text-anchor="middle" fill="#e8e6f0" font-size="24" font-weight="700">Eager</text>
+    <rect x="110" y="286" width="230" height="72" rx="14" fill="#1b2740" stroke="#4fd1c5" stroke-width="2"/>
+    <text x="225" y="330" text-anchor="middle" fill="#e8e6f0" font-size="18" font-weight="700">Include graph</text>
+    <text x="225" y="420" text-anchor="middle" fill="#9ca3af" font-size="16">load now, pay once</text>
+    <text x="225" y="448" text-anchor="middle" fill="#9ca3af" font-size="16">good for known shape</text>
+
+    <rect x="435" y="200" width="330" height="300" rx="24" fill="#171c2a" stroke="#f6ad55" stroke-width="2"/>
+    <text x="600" y="242" text-anchor="middle" fill="#e8e6f0" font-size="24" font-weight="700">Explicit</text>
+    <rect x="485" y="286" width="230" height="72" rx="14" fill="#1b2740" stroke="#f6ad55" stroke-width="2"/>
+    <text x="600" y="330" text-anchor="middle" fill="#e8e6f0" font-size="18" font-weight="700">Load() later</text>
+    <text x="600" y="420" text-anchor="middle" fill="#9ca3af" font-size="16">load on demand</text>
+    <text x="600" y="448" text-anchor="middle" fill="#9ca3af" font-size="16">good for conditional access</text>
+
+    <rect x="810" y="200" width="330" height="300" rx="24" fill="#161d2d" stroke="#a78bfa" stroke-width="2"/>
+    <text x="975" y="242" text-anchor="middle" fill="#e8e6f0" font-size="24" font-weight="700">Lazy</text>
+    <rect x="860" y="286" width="230" height="72" rx="14" fill="#1b2740" stroke="#a78bfa" stroke-width="2"/>
+    <text x="975" y="330" text-anchor="middle" fill="#e8e6f0" font-size="18" font-weight="700">virtual navigation</text>
+    <text x="975" y="420" text-anchor="middle" fill="#9ca3af" font-size="16">load on access</text>
+    <text x="975" y="448" text-anchor="middle" fill="#9ca3af" font-size="16">watch for N+1</text>
+  </g>
+
+  <path d="M390 350H430" stroke="#64748b" stroke-width="4"/>
+  <path d="M765 350H805" stroke="#64748b" stroke-width="4"/>
+  <text x="600" y="546" text-anchor="middle" fill="#f6d365" font-family="Inter, Segoe UI, sans-serif" font-size="17">load shape first, then optimize for query count</text>
+</svg>

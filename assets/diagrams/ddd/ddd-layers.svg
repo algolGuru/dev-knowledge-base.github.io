@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 170" width="300" height="170" role="img" aria-labelledby="title desc">
+  <title id="title">DDD layers</title>
+  <desc id="desc">Presentation, application, domain and infrastructure with dependencies pointing inward.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#181a24"/>
+      <stop offset="100%" stop-color="#12131a"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#4fd1c5"/>
+    </marker>
+  </defs>
+  <rect x="1" y="1" width="298" height="168" rx="14" fill="url(#bg)" stroke="rgba(255,255,255,0.08)"/>
+  <text x="16" y="22" fill="#f6d365" font-family="monospace" font-size="12" font-weight="700">DDD layers</text>
+
+  <rect x="82" y="30" width="136" height="24" rx="8" fill="#1d2334" stroke="#60a5fa" stroke-width="1.1"/>
+  <rect x="70" y="60" width="160" height="24" rx="8" fill="#1f1f2f" stroke="#a78bfa" stroke-width="1.1"/>
+  <rect x="58" y="90" width="184" height="24" rx="8" fill="#202538" stroke="#fb923c" stroke-width="1.1"/>
+  <rect x="46" y="120" width="208" height="24" rx="8" fill="#182030" stroke="#6ee7b7" stroke-width="1.1"/>
+
+  <text x="104" y="46" fill="#60a5fa" font-family="monospace" font-size="10" font-weight="700">Presentation</text>
+  <text x="115" y="76" fill="#a78bfa" font-family="monospace" font-size="10" font-weight="700">Application</text>
+  <text x="124" y="106" fill="#fb923c" font-family="monospace" font-size="10" font-weight="700">Domain</text>
+  <text x="110" y="136" fill="#6ee7b7" font-family="monospace" font-size="10" font-weight="700">Infrastructure</text>
+
+  <path d="M30 42 H44" fill="none" stroke="#4fd1c5" stroke-width="1.1" marker-end="url(#arrow)"/>
+  <path d="M30 72 H56" fill="none" stroke="#4fd1c5" stroke-width="1.1" marker-end="url(#arrow)"/>
+  <path d="M30 102 H68" fill="none" stroke="#4fd1c5" stroke-width="1.1" marker-end="url(#arrow)"/>
+  <path d="M30 132 H80" fill="none" stroke="#4fd1c5" stroke-width="1.1" marker-end="url(#arrow)"/>
+</svg>

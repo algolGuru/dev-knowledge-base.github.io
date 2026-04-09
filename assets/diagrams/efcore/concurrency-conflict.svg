@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img" aria-label="Optimistic concurrency conflict flow">
+  <rect width="1200" height="700" fill="#0b1020"/>
+  <text x="64" y="92" fill="#e8e6f0" font-size="34" font-family="Inter, Segoe UI, sans-serif" font-weight="700">Concurrency token prevents silent overwrite</text>
+  <text x="64" y="128" fill="#9ca3af" font-size="18" font-family="Inter, Segoe UI, sans-serif">read snapshot -> modify -> save -> compare token</text>
+
+  <g font-family="Inter, Segoe UI, sans-serif">
+    <rect x="90" y="220" width="250" height="110" rx="20" fill="#122031" stroke="#60a5fa" stroke-width="2"/>
+    <text x="215" y="265" text-anchor="middle" fill="#e8e6f0" font-size="21" font-weight="700">User A reads row</text>
+    <text x="215" y="296" text-anchor="middle" fill="#9ca3af" font-size="16">Version = 41</text>
+
+    <rect x="90" y="390" width="250" height="110" rx="20" fill="#122031" stroke="#4fd1c5" stroke-width="2"/>
+    <text x="215" y="435" text-anchor="middle" fill="#e8e6f0" font-size="21" font-weight="700">User B reads row</text>
+    <text x="215" y="466" text-anchor="middle" fill="#9ca3af" font-size="16">Version = 41</text>
+
+    <rect x="475" y="285" width="250" height="130" rx="20" fill="#171c2a" stroke="#f6ad55" stroke-width="2"/>
+    <text x="600" y="330" text-anchor="middle" fill="#e8e6f0" font-size="22" font-weight="700">User A saves</text>
+    <text x="600" y="362" text-anchor="middle" fill="#9ca3af" font-size="16">UPDATE ... WHERE Version = 41</text>
+
+    <rect x="840" y="285" width="280" height="130" rx="20" fill="#1a1f2e" stroke="#fb7185" stroke-width="2"/>
+    <text x="980" y="330" text-anchor="middle" fill="#e8e6f0" font-size="22" font-weight="700">User B saves later</text>
+    <text x="980" y="362" text-anchor="middle" fill="#9ca3af" font-size="16">row already changed to 42</text>
+  </g>
+
+  <path d="M340 275H470" stroke="#60a5fa" stroke-width="5"/>
+  <path d="M340 445H470" stroke="#4fd1c5" stroke-width="5"/>
+  <path d="M725 350H836" stroke="#f6ad55" stroke-width="5"/>
+  <path d="M750 350h60" stroke="#fb7185" stroke-width="5"/>
+  <path d="M780 350l18-14" stroke="#fb7185" stroke-width="5"/>
+  <path d="M780 350l18 14" stroke="#fb7185" stroke-width="5"/>
+  <text x="804" y="318" fill="#f87171" font-family="Inter, Segoe UI, sans-serif" font-size="18">DbUpdateConcurrencyException</text>
+
+  <g font-family="Inter, Segoe UI, sans-serif">
+    <rect x="448" y="500" width="304" height="90" rx="18" fill="#0f172a" stroke="#64748b" stroke-width="2"/>
+    <text x="600" y="538" text-anchor="middle" fill="#e8e6f0" font-size="20" font-weight="600">Reload values, merge intent, retry</text>
+    <text x="600" y="568" text-anchor="middle" fill="#9ca3af" font-size="16">or surface conflict to the user</text>
+  </g>
+</svg>

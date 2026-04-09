@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" role="img" aria-labelledby="title desc">
+  <title id="title">DDD Project Study Map</title>
+  <desc id="desc">A reading path for understanding a DDD codebase from entry point to bounded contexts, aggregates, integrations, and tests.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#12101b"/>
+      <stop offset="100%" stop-color="#171522"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="360" rx="28" fill="url(#bg)"/>
+  <rect x="24" y="24" width="912" height="312" rx="22" fill="none" stroke="#ffffff" stroke-opacity="0.08"/>
+  <text x="44" y="58" fill="#e8e6f0" font-size="24" font-family="Inter,Segoe UI,Arial,sans-serif" font-weight="700">How to read a DDD project</text>
+  <text x="44" y="83" fill="#9895a8" font-size="13" font-family="JetBrains Mono,monospace">start from the flow, then zoom into the boundaries</text>
+
+  <g font-family="JetBrains Mono,monospace" font-size="12">
+    <rect x="58" y="154" width="146" height="62" rx="16" fill="#60a5fa" fill-opacity="0.12" stroke="#60a5fa" stroke-opacity="0.35"/>
+    <text x="131" y="181" text-anchor="middle" fill="#dfefff">entry points</text>
+    <text x="131" y="198" text-anchor="middle" fill="#dfefff">controllers / jobs</text>
+
+    <rect x="238" y="154" width="158" height="62" rx="16" fill="#a78bfa" fill-opacity="0.12" stroke="#a78bfa" stroke-opacity="0.35"/>
+    <text x="317" y="181" text-anchor="middle" fill="#f0e8ff">bounded contexts</text>
+    <text x="317" y="198" text-anchor="middle" fill="#f0e8ff">module seams</text>
+
+    <rect x="430" y="154" width="142" height="62" rx="16" fill="#4fd1c5" fill-opacity="0.12" stroke="#4fd1c5" stroke-opacity="0.35"/>
+    <text x="501" y="181" text-anchor="middle" fill="#e7fffb">aggregates</text>
+    <text x="501" y="198" text-anchor="middle" fill="#e7fffb">invariants</text>
+
+    <rect x="606" y="154" width="156" height="62" rx="16" fill="#f6ad55" fill-opacity="0.12" stroke="#f6ad55" stroke-opacity="0.38"/>
+    <text x="684" y="181" text-anchor="middle" fill="#fff0df">events &amp; outbox</text>
+    <text x="684" y="198" text-anchor="middle" fill="#fff0df">integration seams</text>
+
+    <rect x="798" y="154" width="106" height="62" rx="16" fill="#fb7185" fill-opacity="0.12" stroke="#fb7185" stroke-opacity="0.35"/>
+    <text x="851" y="181" text-anchor="middle" fill="#ffe0e6">tests</text>
+    <text x="851" y="198" text-anchor="middle" fill="#ffe0e6">behaviour</text>
+  </g>
+
+  <g fill="none" stroke="#ffffff" stroke-opacity="0.44" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M204 185H238"/>
+    <path d="M396 185H430"/>
+    <path d="M572 185H606"/>
+    <path d="M762 185H798"/>
+  </g>
+
+  <rect x="82" y="248" width="796" height="44" rx="22" fill="#ffffff" fill-opacity="0.04" stroke="#ffffff" stroke-opacity="0.08"/>
+  <text x="480" y="275" text-anchor="middle" fill="#b9c3da" font-size="12" font-family="JetBrains Mono,monospace">follow the business language, then check how it is protected in code</text>
+</svg>

@@ -619,6 +619,25 @@ a:hover { color: #7ee8df; text-decoration: underline; }
   border-left: 3px solid rgba(79,209,197,0.35);
   color: #b6b1c7;
 }
+.markdown-body img,
+.tree-popup-desc img {
+  display: block;
+  max-width: 100% !important;
+  height: auto !important;
+  margin: 1rem auto 1.1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background:
+    radial-gradient(circle at top left, rgba(79,209,197,0.10), transparent 38%),
+    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.03),
+    0 14px 28px rgba(0,0,0,0.18);
+}
+.markdown-body p > img:only-child,
+.tree-popup-desc p > img:only-child {
+  margin-top: 0.2rem;
+}
 
 .empty-state {
   text-align: center; padding: 4rem 2rem;
@@ -671,6 +690,11 @@ a:hover { color: #7ee8df; text-decoration: underline; }
   .container { padding: 1rem; }
   .hero { padding: 1.5rem 0 1rem; }
   .hero p { font-size: 13px; }
+  .markdown-body img,
+  .tree-popup-desc img {
+    border-radius: 14px;
+    margin: 0.85rem auto 1rem;
+  }
 
   /* Filters: smaller pills */
   .filters { gap: 6px; }

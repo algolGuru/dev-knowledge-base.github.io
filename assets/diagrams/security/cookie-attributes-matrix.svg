@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 420" role="img" aria-labelledby="title desc">
+  <title id="title">Cookie attribute matrix</title>
+  <desc id="desc">Secure, HttpOnly, SameSite, and prefix choices define whether cookies are exposed to JavaScript, cross-site requests, or subdomains.</desc>
+  <rect width="980" height="420" rx="28" fill="#12131a" stroke="#364055"/>
+  <text x="42" y="52" fill="#f6d365" font-family="'JetBrains Mono', monospace" font-size="24" font-weight="700">Cookie hardening matrix</text>
+  <text x="42" y="82" fill="#b8c0d4" font-family="'JetBrains Mono', monospace" font-size="15">Комбинация флагов определяет, кто увидит cookie: JavaScript, другой origin, поддомены или только HTTPS.</text>
+
+  <g font-family="'JetBrains Mono', monospace" font-size="15">
+    <rect x="44" y="122" width="892" height="236" rx="18" fill="#171a25" stroke="#30384c"/>
+    <g fill="#dfe5f2" font-weight="700">
+      <text x="72" y="164">Атрибут</text>
+      <text x="288" y="164">Что даёт</text>
+      <text x="610" y="164">Типичный выбор</text>
+    </g>
+
+    <g fill="#ffffff">
+      <text x="72" y="208">Secure</text>
+      <text x="288" y="208">Передавать cookie только по HTTPS</text>
+      <text x="610" y="208">Всегда включён для auth-cookie</text>
+
+      <text x="72" y="248">HttpOnly</text>
+      <text x="288" y="248">Скрыть cookie от JavaScript</text>
+      <text x="610" y="248">Включён для сессий и refresh-cookie</text>
+
+      <text x="72" y="288">SameSite</text>
+      <text x="288" y="288">Ограничить cross-site отправку</text>
+      <text x="610" y="288">`Lax` по умолчанию, `None; Secure` только если нужно</text>
+
+      <text x="72" y="328">__Host- / __Secure-</text>
+      <text x="288" y="328">Ужесточить scope и способ установки</text>
+      <text x="610" y="328">`__Host-` для host-only auth-cookie</text>
+    </g>
+  </g>
+
+  <g stroke="#2f384c" stroke-width="1.5">
+    <line x1="62" y1="178" x2="918" y2="178"/>
+    <line x1="62" y1="218" x2="918" y2="218"/>
+    <line x1="62" y1="258" x2="918" y2="258"/>
+    <line x1="62" y1="298" x2="918" y2="298"/>
+    <line x1="240" y1="142" x2="240" y2="340"/>
+    <line x1="582" y1="142" x2="582" y2="340"/>
+  </g>
+</svg>
