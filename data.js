@@ -823,43 +823,347 @@ Strategy выносит выбор алгоритма наружу. Command пр
   },  {
     id: "ddd", title: "DDD (Domain-Driven Design)", icon: "&#9673;", color: "violet",
     rows: [
-            topic("Aggregate Root", `## Что это
-Aggregate — это кластер связанных entity и value object, а Aggregate Root — единственная допустимая точка входа в этот кластер. Снаружи система работает не с любой внутренней сущностью, а только через root: именно он держит границу консистентности, защищает инварианты и решает, какие изменения вообще допустимы.
+            topic("Aggregate Root", `# DDD Aggregate Root в C# .NET — описание и примеры
+
+## Введение
+
+В Domain-Driven Design агрегат — это кластер связанных сущностей и value object'ов, которые должны изменяться как единое целое. Внешний мир работает не с любой внутренней сущностью агрегата, а только через **Aggregate Root**.
+
+Aggregate Root решает сразу несколько задач:
+
+* задаёт **границу консистентности**;
+* защищает **инварианты** доменной модели;
+* определяет единственную допустимую точку изменения состояния агрегата;
+* является естественным местом для генерации **domain events**.
+
+На практике это означает простое правило:
+
+> Снаружи агрегата нельзя напрямую менять его внутренние сущности. Все изменения проходят через методы Aggregate Root.
 
 ![Граница агрегата](/assets/diagrams/ddd/aggregate-boundary.svg)
 
-## Что root делает в реальном коде
-- Даёт маленький, но выразительный публичный API: \`AddItem(...)\`, \`Submit()\`, \`Cancel(reason)\`.
-- Не позволяет мутировать внутренние коллекции и состояние напрямую через публичные \`set\`.
-- Управляет вложенными entity и value object так, чтобы внешнему коду не приходилось знать внутреннюю структуру агрегата.
-- Поднимает \`DomainEvent\` как следствие доменного изменения, а не по договорённости в application layer.
+---
 
-![Поток domain event](/assets/diagrams/ddd/domain-event-flow.svg)
+## Когда нужен Aggregate Root
 
-## Минимальный каркас в C# .NET
+Aggregate Root нужен, когда:
+
+* у объекта есть важные бизнес-правила;
+* состояние должно меняться только по контролируемым сценариям;
+* несколько вложенных сущностей должны быть согласованы между собой;
+* нужно публиковать domain events после бизнес-изменений;
+* необходимо явно отделить доменную модель от application/service слоя.
+
+Если объект — просто DTO или таблица без поведения, полноценный агрегат обычно не нужен.
+
+---
+
+## Что обычно входит в базовый класс AggregateRoot
+
+Базовый класс \`AggregateRoot\` чаще всего содержит:
+
+1. **Идентификатор** агрегата.
+2. **Коллекцию domain events**.
+3. Методы для:
+
+   * добавления domain events;
+   * чтения накопленных events;
+   * очистки events после сохранения.
+4. Иногда:
+
+   * версию для optimistic concurrency;
+   * общие проверки;
+   * базовую инфраструктурную логику.
+
+Важно: базовый класс не должен превращаться в «свалку» общего кода. В него стоит помещать только то, что действительно относится ко всем агрегатам.
+
+---
+
+## Базовые строительные блоки
+
+### Domain Event
+
+Domain Event описывает уже случившийся факт в домене.
+
+Примеры:
+
+* \`OrderCreatedDomainEvent\`
+* \`OrderItemAddedDomainEvent\`
+* \`OrderSubmittedDomainEvent\`
+
+Событие не должно описывать команду вроде «создай заказ». Оно должно описывать факт: «заказ создан».
+
+### Domain Exception
+
+Domain Exception используется, когда нарушаются инварианты доменной модели.
+
+Примеры:
+
+* нельзя добавить товар с отрицательным количеством;
+* нельзя подтвердить уже отменённый заказ;
+* нельзя изменить закрытый агрегат.
+
+### Entity и Value Object
+
+Внутри агрегата могут находиться:
+
+* **Entity** — объект с идентичностью;
+* **Value Object** — объект без собственной идентичности, определяемый значением.
+
+Aggregate Root управляет ими и не позволяет внешнему коду ломать инварианты.
+
+---
+
+# Пример базовой доменной инфраструктуры
+
+## Интерфейс доменного события
+
 \`\`\`csharp
+namespace Demo.Domain.Abstractions;
+
+public interface IDomainEvent
+{
+    DateTime OccurredOnUtc { get; }
+}
+\`\`\`
+
+## Базовое исключение домена
+
+\`\`\`csharp
+namespace Demo.Domain.Abstractions;
+
+public class DomainException : Exception
+{
+    public DomainException(string message) : base(message)
+    {
+    }
+}
+\`\`\`
+
+## Базовый класс Entity
+
+\`\`\`csharp
+namespace Demo.Domain.Abstractions;
+
+public abstract class Entity<TId>
+    where TId : notnull
+{
+    public TId Id { get; protected set; } = default!;
+}
+\`\`\`
+
+## Базовый класс AggregateRoot
+
+\`\`\`csharp
+using System.Collections.ObjectModel;
+
+namespace Demo.Domain.Abstractions;
+
 public abstract class AggregateRoot<TId> : Entity<TId>
     where TId : notnull
 {
     private readonly List<IDomainEvent> _domainEvents = [];
 
-    public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+    public ReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
     protected void RaiseDomainEvent(IDomainEvent domainEvent)
-        => _domainEvents.Add(domainEvent);
+    {
+        _domainEvents.Add(domainEvent);
+    }
 
     public void ClearDomainEvents()
-        => _domainEvents.Clear();
+    {
+        _domainEvents.Clear();
+    }
 }
 \`\`\`
 
-## Пример root: Order
+### Почему этого достаточно
+
+Этот базовый класс делает главное:
+
+* агрегат умеет накапливать domain events;
+* application/infrastructure слой может прочитать их после изменения агрегата;
+* после сохранения events можно очистить.
+
+Это минималистичный и практичный вариант.
+
+---
+
+# Пример агрегата: Order
+
+Рассмотрим агрегат заказа.
+
+Бизнес-правила:
+
+* заказ можно создать только с валидным клиентом;
+* товар можно добавить только с положительным количеством;
+* нельзя менять уже отправленный или отменённый заказ;
+* нельзя отправить пустой заказ.
+
+## Value Object: CustomerId
+
 \`\`\`csharp
+namespace Demo.Domain.Orders;
+
+public readonly record struct CustomerId(Guid Value)
+{
+    public static CustomerId New() => new(Guid.NewGuid());
+
+    public override string ToString() => Value.ToString();
+}
+\`\`\`
+
+## Value Object: ProductId
+
+\`\`\`csharp
+namespace Demo.Domain.Orders;
+
+public readonly record struct ProductId(Guid Value)
+{
+    public static ProductId New() => new(Guid.NewGuid());
+
+    public override string ToString() => Value.ToString();
+}
+\`\`\`
+
+## Идентификатор заказа
+
+\`\`\`csharp
+namespace Demo.Domain.Orders;
+
+public readonly record struct OrderId(Guid Value)
+{
+    public static OrderId New() => new(Guid.NewGuid());
+
+    public override string ToString() => Value.ToString();
+}
+\`\`\`
+
+## Статус заказа
+
+\`\`\`csharp
+namespace Demo.Domain.Orders;
+
+public enum OrderStatus
+{
+    Draft = 0,
+    Submitted = 1,
+    Cancelled = 2
+}
+\`\`\`
+
+## Внутренняя entity: OrderItem
+
+\`\`\`csharp
+using Demo.Domain.Abstractions;
+
+namespace Demo.Domain.Orders;
+
+public sealed class OrderItem : Entity<Guid>
+{
+    public ProductId ProductId { get; private set; }
+    public string ProductName { get; private set; }
+    public decimal UnitPrice { get; private set; }
+    public int Quantity { get; private set; }
+
+    public decimal TotalPrice => UnitPrice * Quantity;
+
+    private OrderItem()
+    {
+    }
+
+    internal OrderItem(ProductId productId, string productName, decimal unitPrice, int quantity)
+    {
+        if (string.IsNullOrWhiteSpace(productName))
+            throw new DomainException("Product name cannot be empty.");
+
+        if (unitPrice <= 0)
+            throw new DomainException("Unit price must be greater than zero.");
+
+        if (quantity <= 0)
+            throw new DomainException("Quantity must be greater than zero.");
+
+        Id = Guid.NewGuid();
+        ProductId = productId;
+        ProductName = productName;
+        UnitPrice = unitPrice;
+        Quantity = quantity;
+    }
+
+    internal void IncreaseQuantity(int quantity)
+    {
+        if (quantity <= 0)
+            throw new DomainException("Quantity increment must be greater than zero.");
+
+        Quantity += quantity;
+    }
+
+    internal void ChangeQuantity(int quantity)
+    {
+        if (quantity <= 0)
+            throw new DomainException("Quantity must be greater than zero.");
+
+        Quantity = quantity;
+    }
+}
+\`\`\`
+
+Обрати внимание на \`internal\` методы. Это хороший способ показать, что внутреннюю entity нельзя свободно менять извне. Управление идёт через root.
+
+---
+
+## Domain Events заказа
+
+\`\`\`csharp
+using Demo.Domain.Abstractions;
+
+namespace Demo.Domain.Orders.Events;
+
+public sealed record OrderCreatedDomainEvent(
+    OrderId OrderId,
+    CustomerId CustomerId,
+    DateTime OccurredOnUtc) : IDomainEvent;
+
+public sealed record OrderItemAddedDomainEvent(
+    OrderId OrderId,
+    ProductId ProductId,
+    int Quantity,
+    DateTime OccurredOnUtc) : IDomainEvent;
+
+public sealed record OrderSubmittedDomainEvent(
+    OrderId OrderId,
+    decimal TotalAmount,
+    DateTime OccurredOnUtc) : IDomainEvent;
+
+public sealed record OrderCancelledDomainEvent(
+    OrderId OrderId,
+    string Reason,
+    DateTime OccurredOnUtc) : IDomainEvent;
+\`\`\`
+
+## Aggregate Root: Order
+
+\`\`\`csharp
+using Demo.Domain.Abstractions;
+using Demo.Domain.Orders.Events;
+
+namespace Demo.Domain.Orders;
+
 public sealed class Order : AggregateRoot<OrderId>
 {
     private readonly List<OrderItem> _items = [];
 
-    private Order() { }
+    public CustomerId CustomerId { get; private set; }
+    public OrderStatus Status { get; private set; }
+    public DateTime CreatedAtUtc { get; private set; }
+    public DateTime? SubmittedAtUtc { get; private set; }
+    public IReadOnlyCollection<OrderItem> Items => _items.AsReadOnly();
+    public decimal TotalAmount => _items.Sum(x => x.TotalPrice);
+
+    private Order()
+    {
+    }
 
     private Order(OrderId id, CustomerId customerId)
     {
@@ -869,41 +1173,63 @@ public sealed class Order : AggregateRoot<OrderId>
         Id = id;
         CustomerId = customerId;
         Status = OrderStatus.Draft;
-    }
+        CreatedAtUtc = DateTime.UtcNow;
 
-    public CustomerId CustomerId { get; private set; }
-    public OrderStatus Status { get; private set; }
-    public IReadOnlyCollection<OrderItem> Items => _items.AsReadOnly();
-    public decimal TotalAmount => _items.Sum(x => x.TotalPrice);
+        RaiseDomainEvent(new OrderCreatedDomainEvent(
+            Id,
+            CustomerId,
+            DateTime.UtcNow));
+    }
 
     public static Order Create(CustomerId customerId)
     {
-        var order = new Order(OrderId.New(), customerId);
-
-        order.RaiseDomainEvent(new OrderCreatedDomainEvent(
-            order.Id,
-            order.CustomerId,
-            DateTime.UtcNow));
-
-        return order;
+        return new Order(OrderId.New(), customerId);
     }
 
     public void AddItem(ProductId productId, string productName, decimal unitPrice, int quantity)
     {
         EnsureCanBeModified();
 
+        if (productId == default)
+            throw new DomainException("ProductId is required.");
+
         var existingItem = _items.FirstOrDefault(x => x.ProductId == productId);
 
         if (existingItem is null)
-            _items.Add(new OrderItem(productId, productName, unitPrice, quantity));
+        {
+            var item = new OrderItem(productId, productName, unitPrice, quantity);
+            _items.Add(item);
+        }
         else
+        {
             existingItem.IncreaseQuantity(quantity);
+        }
 
         RaiseDomainEvent(new OrderItemAddedDomainEvent(
             Id,
             productId,
             quantity,
             DateTime.UtcNow));
+    }
+
+    public void ChangeItemQuantity(ProductId productId, int quantity)
+    {
+        EnsureCanBeModified();
+
+        var item = _items.FirstOrDefault(x => x.ProductId == productId)
+            ?? throw new DomainException("Order item was not found.");
+
+        item.ChangeQuantity(quantity);
+    }
+
+    public void RemoveItem(ProductId productId)
+    {
+        EnsureCanBeModified();
+
+        var item = _items.FirstOrDefault(x => x.ProductId == productId)
+            ?? throw new DomainException("Order item was not found.");
+
+        _items.Remove(item);
     }
 
     public void Submit()
@@ -914,6 +1240,7 @@ public sealed class Order : AggregateRoot<OrderId>
             throw new DomainException("Order cannot be submitted without items.");
 
         Status = OrderStatus.Submitted;
+        SubmittedAtUtc = DateTime.UtcNow;
 
         RaiseDomainEvent(new OrderSubmittedDomainEvent(
             Id,
@@ -921,33 +1248,544 @@ public sealed class Order : AggregateRoot<OrderId>
             DateTime.UtcNow));
     }
 
+    public void Cancel(string reason)
+    {
+        if (Status == OrderStatus.Cancelled)
+            throw new DomainException("Order is already cancelled.");
+
+        if (Status == OrderStatus.Submitted)
+            throw new DomainException("Submitted order cannot be cancelled in this business flow.");
+
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new DomainException("Cancellation reason is required.");
+
+        Status = OrderStatus.Cancelled;
+
+        RaiseDomainEvent(new OrderCancelledDomainEvent(
+            Id,
+            reason,
+            DateTime.UtcNow));
+    }
+
     private void EnsureCanBeModified()
     {
-        if (Status is OrderStatus.Submitted or OrderStatus.Cancelled)
-            throw new DomainException("Order cannot be modified.");
+        if (Status == OrderStatus.Submitted)
+            throw new DomainException("Submitted order cannot be modified.");
+
+        if (Status == OrderStatus.Cancelled)
+            throw new DomainException("Cancelled order cannot be modified.");
     }
 }
 \`\`\`
 
-В таком дизайне \`OrderItem\` обычно меняется только через методы root, а его внутренние операции делают \`internal\` или полностью скрывают.
+![Поток domain event](/assets/diagrams/ddd/domain-event-flow.svg)
 
-## Как это работает в приложении
-Application handler загружает \`Order\` через repository, вызывает доменный метод, затем \`UnitOfWork\` сохраняет изменения. После сохранения infrastructure читает \`DomainEvents\`, публикует их in-process или пишет в outbox. Сам root не должен отправлять сообщения в брокер и не должен знать про EF Core, MediatR или HTTP.
+---
+
+# Что здесь важно архитектурно
+
+## 1. Создание агрегата через фабричный метод
+
+\`\`\`csharp
+var order = Order.Create(customerId);
+\`\`\`
+
+Почему не публичный конструктор:
+
+* можно централизовать инварианты создания;
+* можно сразу поднять \`OrderCreatedDomainEvent\`;
+* код становится выразительнее.
+
+## 2. Изменение агрегата только через методы root
+
+\`\`\`csharp
+order.AddItem(productId, "Keyboard", 120m, 2);
+order.Submit();
+\`\`\`
+
+Внешний код не делает так:
+
+\`\`\`csharp
+order.Items.Add(...); // так делать нельзя
+\`\`\`
+
+Именно в этом и смысл Aggregate Root.
+
+## 3. Инварианты находятся внутри домена
+
+Нельзя полагаться только на проверки в контроллере, хендлере или UI. Даже если application слой что-то забыл проверить, агрегат должен защитить себя сам.
+
+## 4. Domain events рождаются в момент доменного изменения
+
+Это важно, потому что событие должно появляться не в application service «по договорённости», а как следствие реального изменения доменного состояния.
+
+---
+
+# Пример использования в CQRS
+
+Ниже — минимальный application слой. Он не содержит бизнес-правил заказа, а только orchestrates сценарий.
+
+![Application service](/assets/diagrams/ddd/application-service.svg)
+
+## Команда создания заказа
+
+\`\`\`csharp
+namespace Demo.Application.Orders.CreateOrder;
+
+public sealed record CreateOrderCommand(Guid CustomerId) : IRequest<Guid>;
+\`\`\`
+
+## Команда добавления товара
+
+\`\`\`csharp
+namespace Demo.Application.Orders.AddOrderItem;
+
+public sealed record AddOrderItemCommand(
+    Guid OrderId,
+    Guid ProductId,
+    string ProductName,
+    decimal UnitPrice,
+    int Quantity) : IRequest;
+\`\`\`
+
+## Команда отправки заказа
+
+\`\`\`csharp
+namespace Demo.Application.Orders.SubmitOrder;
+
+public sealed record SubmitOrderCommand(Guid OrderId) : IRequest;
+\`\`\`
+
+---
+
+## Репозиторий агрегата
+
+\`\`\`csharp
+using Demo.Domain.Orders;
+
+namespace Demo.Application.Abstractions;
+
+public interface IOrderRepository
+{
+    Task AddAsync(Order order, CancellationToken cancellationToken = default);
+    Task<Order?> GetByIdAsync(OrderId orderId, CancellationToken cancellationToken = default);
+}
+\`\`\`
+
+## Unit of Work
+
+\`\`\`csharp
+namespace Demo.Application.Abstractions;
+
+public interface IUnitOfWork
+{
+    Task SaveChangesAsync(CancellationToken cancellationToken = default);
+}
+\`\`\`
+
+---
+
+## Handler: CreateOrder
+
+\`\`\`csharp
+using Demo.Application.Abstractions;
+using Demo.Domain.Orders;
+using MediatR;
+
+namespace Demo.Application.Orders.CreateOrder;
+
+public sealed class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Guid>
+{
+    private readonly IOrderRepository _orderRepository;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public CreateOrderCommandHandler(
+        IOrderRepository orderRepository,
+        IUnitOfWork unitOfWork)
+    {
+        _orderRepository = orderRepository;
+        _unitOfWork = unitOfWork;
+    }
+
+    public async Task<Guid> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
+    {
+        var order = Order.Create(new CustomerId(request.CustomerId));
+
+        await _orderRepository.AddAsync(order, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return order.Id.Value;
+    }
+}
+\`\`\`
+
+## Handler: AddOrderItem
+
+\`\`\`csharp
+using Demo.Application.Abstractions;
+using Demo.Domain.Abstractions;
+using Demo.Domain.Orders;
+using MediatR;
+
+namespace Demo.Application.Orders.AddOrderItem;
+
+public sealed class AddOrderItemCommandHandler : IRequestHandler<AddOrderItemCommand>
+{
+    private readonly IOrderRepository _orderRepository;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public AddOrderItemCommandHandler(
+        IOrderRepository orderRepository,
+        IUnitOfWork unitOfWork)
+    {
+        _orderRepository = orderRepository;
+        _unitOfWork = unitOfWork;
+    }
+
+    public async Task Handle(AddOrderItemCommand request, CancellationToken cancellationToken)
+    {
+        var order = await _orderRepository.GetByIdAsync(new OrderId(request.OrderId), cancellationToken)
+            ?? throw new DomainException("Order was not found.");
+
+        order.AddItem(
+            new ProductId(request.ProductId),
+            request.ProductName,
+            request.UnitPrice,
+            request.Quantity);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+}
+\`\`\`
+
+## Handler: SubmitOrder
+
+\`\`\`csharp
+using Demo.Application.Abstractions;
+using Demo.Domain.Abstractions;
+using Demo.Domain.Orders;
+using MediatR;
+
+namespace Demo.Application.Orders.SubmitOrder;
+
+public sealed class SubmitOrderCommandHandler : IRequestHandler<SubmitOrderCommand>
+{
+    private readonly IOrderRepository _orderRepository;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public SubmitOrderCommandHandler(
+        IOrderRepository orderRepository,
+        IUnitOfWork unitOfWork)
+    {
+        _orderRepository = orderRepository;
+        _unitOfWork = unitOfWork;
+    }
+
+    public async Task Handle(SubmitOrderCommand request, CancellationToken cancellationToken)
+    {
+        var order = await _orderRepository.GetByIdAsync(new OrderId(request.OrderId), cancellationToken)
+            ?? throw new DomainException("Order was not found.");
+
+        order.Submit();
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+}
+\`\`\`
+
+---
+
+# Почему CQRS здесь полезен
+
+CQRS хорошо сочетается с агрегатами, потому что:
+
+* **Command side** работает с богатой доменной моделью;
+* бизнес-логика живёт в агрегатах, а не в хендлерах;
+* хендлеры остаются тонкими;
+* **Query side** можно строить отдельно, без протаскивания всей доменной модели.
+
+Идея такая:
+
+* команда вызывает aggregate root;
+* aggregate root проверяет инварианты и меняет состояние;
+* aggregate root поднимает domain events;
+* unit of work сохраняет изменения;
+* infrastructure публикует события или складывает их в outbox.
 
 ![Границы транзакций](/assets/diagrams/ddd/transaction-boundaries.svg)
 
-## Практика
-- Загружайте и сохраняйте агрегат как одно целое.
-- На другие агрегаты лучше ссылаться по \`Id\`, а не хранить живые ссылки на чужой граф объектов.
-- Обычно одна транзакция охватывает один aggregate root; координацию между несколькими агрегатами чаще делают через events и eventual consistency.
+---
 
-## Частые ошибки
-- Анемичная модель, где состояние меняется напрямую: \`order.Status = OrderStatus.Submitted\`.
-- Репозиторий для внутренней сущности вроде \`OrderItemRepository\`, который позволяет обходить root.
-- Слишком большой агрегат, в который пытаются запихнуть все соседние правила “на всякий случай”.
+# Где место domain events в реальной архитектуре
 
-## Что запомнить
-Aggregate Root нужен не ради базового класса, а ради контроля над изменениями. Если у модели есть важные инварианты, вложенные сущности и бизнес-сценарии, root делает эти правила явными и защищёнными. Если объект — это просто DTO без поведения, полноценный агрегат обычно только усложнит модель.`, [
+Обычно процесс выглядит так:
+
+1. Application handler загружает агрегат.
+2. Вызывает доменный метод.
+3. Агрегат меняет состояние и добавляет \`DomainEvents\`.
+4. \`UnitOfWork\` сохраняет агрегат.
+5. После этого infrastructure:
+
+   * либо публикует events in-process;
+   * либо сохраняет их в outbox;
+   * либо делает оба шага через надёжный механизм.
+
+То есть Aggregate Root **не отправляет сообщения в брокер сам**. Он только фиксирует доменные факты.
+
+![Поток domain event](/assets/diagrams/ddd/domain-event-flow.svg)
+
+---
+
+# Пример возможного dispatcher после сохранения
+
+Это уже не домен, а инфраструктурный код.
+
+\`\`\`csharp
+using Demo.Domain.Abstractions;
+using MediatR;
+
+namespace Demo.Infrastructure.Persistence;
+
+public sealed class DomainEventsDispatcher
+{
+    private readonly IPublisher _publisher;
+
+    public DomainEventsDispatcher(IPublisher publisher)
+    {
+        _publisher = publisher;
+    }
+
+    public async Task DispatchAsync(
+        IEnumerable<AggregateRoot<object>> aggregates,
+        CancellationToken cancellationToken = default)
+    {
+        var domainEvents = aggregates
+            .SelectMany(x => x.DomainEvents)
+            .ToList();
+
+        foreach (var aggregate in aggregates)
+        {
+            aggregate.ClearDomainEvents();
+        }
+
+        foreach (var domainEvent in domainEvents)
+        {
+            await _publisher.Publish(domainEvent, cancellationToken);
+        }
+    }
+}
+\`\`\`
+
+В реальном проекте такой код обычно делают аккуратнее: с единым базовым интерфейсом для агрегатов, с outbox, с транзакционной согласованностью.
+
+---
+
+# Частые ошибки при проектировании Aggregate Root
+
+## 1. Анемичная модель
+
+Плохо:
+
+\`\`\`csharp
+order.Status = OrderStatus.Submitted;
+\`\`\`
+
+Хорошо:
+
+\`\`\`csharp
+order.Submit();
+\`\`\`
+
+Когда состояние меняется напрямую, домен перестаёт защищать свои правила.
+
+## 2. Слишком большой агрегат
+
+Если один aggregate root начинает содержать слишком много сущностей и сценариев, любая операция становится тяжёлой, а конкуренция за изменение данных — дорогой.
+
+Признаки проблемы:
+
+* агрегат грузится с огромным графом данных;
+* почти каждое действие блокирует всё подряд;
+* сложно понять границы инвариантов.
+
+## 3. Domain events создаются в application layer
+
+Плохо:
+
+\`\`\`csharp
+order.Submit();
+publisher.Publish(new OrderSubmittedDomainEvent(...));
+\`\`\`
+
+Тогда событие легко забыть. Лучше, чтобы агрегат сам фиксировал этот факт.
+
+## 4. Репозиторий возвращает внутренние сущности агрегата отдельно
+
+Например, \`OrderItemRepository\` рядом с \`OrderRepository\` часто ломает границы агрегата. Если \`OrderItem\` принадлежит агрегату \`Order\`, доступ к нему должен идти через \`Order\`.
+
+## 5. Публичные set-теры
+
+Плохо:
+
+\`\`\`csharp
+public OrderStatus Status { get; set; }
+\`\`\`
+
+Хорошо:
+
+\`\`\`csharp
+public OrderStatus Status { get; private set; }
+\`\`\`
+
+И изменение — только через доменные методы.
+
+---
+
+# Практические рекомендации
+
+## Когда использовать базовый AggregateRoot
+
+Используй базовый класс, если почти у всех агрегатов есть:
+
+* \`Id\`;
+* \`DomainEvents\`;
+* общий механизм \`RaiseDomainEvent\`.
+
+Если общности нет, можно использовать интерфейсы и композицию.
+
+## Как именовать методы агрегата
+
+Методы должны отражать бизнес-действия:
+
+* \`Submit()\`
+* \`Cancel(reason)\`
+* \`AddItem(...)\`
+* \`Approve()\`
+* \`Complete()\`
+
+Лучше избегать технических названий вроде:
+
+* \`UpdateStatus()\`
+* \`SetState()\`
+* \`Process()\`
+
+## Где делать валидацию
+
+* **Формат и transport validation** — во входном слое.
+* **Бизнес-инварианты** — внутри доменной модели.
+
+Например:
+
+* проверить, что \`Quantity\` пришёл как число — это не домен;
+* проверить, что \`Quantity > 0\` для заказа — уже домен.
+
+---
+
+# Ещё один короткий пример: BankAccount Aggregate Root
+
+Иногда на простом примере идея видна ещё лучше.
+
+\`\`\`csharp
+using Demo.Domain.Abstractions;
+
+namespace Demo.Domain.BankAccounts;
+
+public sealed class BankAccount : AggregateRoot<Guid>
+{
+    public string Number { get; private set; } = string.Empty;
+    public decimal Balance { get; private set; }
+    public bool IsClosed { get; private set; }
+
+    private BankAccount()
+    {
+    }
+
+    private BankAccount(string number)
+    {
+        if (string.IsNullOrWhiteSpace(number))
+            throw new DomainException("Account number is required.");
+
+        Id = Guid.NewGuid();
+        Number = number;
+        Balance = 0m;
+        IsClosed = false;
+    }
+
+    public static BankAccount Open(string number)
+    {
+        return new BankAccount(number);
+    }
+
+    public void Deposit(decimal amount)
+    {
+        EnsureNotClosed();
+
+        if (amount <= 0)
+            throw new DomainException("Deposit amount must be greater than zero.");
+
+        Balance += amount;
+    }
+
+    public void Withdraw(decimal amount)
+    {
+        EnsureNotClosed();
+
+        if (amount <= 0)
+            throw new DomainException("Withdraw amount must be greater than zero.");
+
+        if (Balance < amount)
+            throw new DomainException("Insufficient funds.");
+
+        Balance -= amount;
+    }
+
+    public void Close()
+    {
+        EnsureNotClosed();
+
+        if (Balance != 0)
+            throw new DomainException("Account with non-zero balance cannot be closed.");
+
+        IsClosed = true;
+    }
+
+    private void EnsureNotClosed()
+    {
+        if (IsClosed)
+            throw new DomainException("Closed account cannot be modified.");
+    }
+}
+\`\`\`
+
+Здесь отлично видно, что Aggregate Root — это не просто контейнер данных, а объект поведения.
+
+---
+
+# Итого
+
+\`AggregateRoot\` в DDD — это центральная точка управления консистентностью агрегата. Его задача — не просто хранить \`Id\`, а:
+
+* защищать инварианты;
+* управлять внутренними сущностями;
+* задавать допустимые бизнес-операции;
+* поднимать domain events;
+* не позволять внешнему коду менять состояние в обход доменных правил.
+
+Хороший Aggregate Root обычно имеет такие признаки:
+
+* небольшой, но выразительный публичный API;
+* \`private set\` и инкапсулированные коллекции;
+* явные бизнес-методы;
+* проверки инвариантов внутри;
+* domain events как отражение случившихся доменных фактов.
+
+В связке с CQRS такой подход даёт чистую архитектуру:
+
+* commands меняют состояние через aggregate root;
+* queries читают отдельно;
+* application layer координирует сценарий;
+* домен хранит бизнес-правила;
+* infrastructure сохраняет и публикует события.`, [
           link("Martin Fowler — DDD Aggregate", "https://martinfowler.com/bliki/DDD_Aggregate.html"),
           link("Microsoft Learn — microservice domain model", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/net-core-microservice-domain-model"),
           link("Microsoft Learn — domain model validations", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/domain-model-layer-validations"),
