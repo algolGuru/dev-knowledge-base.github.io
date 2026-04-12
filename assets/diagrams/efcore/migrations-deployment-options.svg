@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-label="Варианты применения миграций в production">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b1020"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="bundleAccent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#4fd1c5"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+    <linearGradient id="runnerAccent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#fb7185"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="760" fill="url(#bg)"/>
+  <circle cx="180" cy="140" r="120" fill="#4fd1c5" opacity="0.10"/>
+  <circle cx="1000" cy="610" r="160" fill="#fb7185" opacity="0.08"/>
+  <rect x="48" y="48" width="1104" height="664" rx="28" fill="none" stroke="#334155" stroke-width="2"/>
+
+  <text x="72" y="102" fill="#e8e6f0" font-size="34" font-family="Segoe UI, Arial, sans-serif" font-weight="700">Применение миграций в production</text>
+  <text x="72" y="138" fill="#9ca3af" font-size="18" font-family="Segoe UI, Arial, sans-serif">два типовых пути: bundle для простоты, runner для большего контроля</text>
+
+  <rect x="90" y="190" width="460" height="380" rx="26" fill="#0f172a" stroke="#4fd1c5" stroke-width="2"/>
+  <rect x="650" y="190" width="460" height="380" rx="26" fill="#0f172a" stroke="#fb7185" stroke-width="2"/>
+
+  <text x="320" y="238" text-anchor="middle" fill="#e8e6f0" font-size="28" font-family="Segoe UI, Arial, sans-serif" font-weight="700">Migration Bundle</text>
+  <text x="320" y="268" text-anchor="middle" fill="#9ca3af" font-size="17" font-family="Segoe UI, Arial, sans-serif">рекомендуемый путь для отдельного deployment job</text>
+
+  <text x="880" y="238" text-anchor="middle" fill="#e8e6f0" font-size="28" font-family="Segoe UI, Arial, sans-serif" font-weight="700">Migrations Runner</text>
+  <text x="880" y="268" text-anchor="middle" fill="#9ca3af" font-size="17" font-family="Segoe UI, Arial, sans-serif">отдельное приложение с Database.Migrate()</text>
+
+  <g font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#e8e6f0">
+    <rect x="130" y="310" width="380" height="72" rx="18" fill="#132235" stroke="#60a5fa" stroke-width="2"/>
+    <text x="320" y="355" text-anchor="middle">dotnet ef migrations bundle</text>
+
+    <rect x="130" y="414" width="380" height="72" rx="18" fill="#10263a" stroke="#4fd1c5" stroke-width="2"/>
+    <text x="320" y="459" text-anchor="middle">efbundle.exe --connection ...</text>
+
+    <rect x="690" y="310" width="380" height="72" rx="18" fill="#2a1e1a" stroke="#f59e0b" stroke-width="2"/>
+    <text x="880" y="355" text-anchor="middle">поднять DbContext</text>
+
+    <rect x="690" y="414" width="380" height="72" rx="18" fill="#2a1720" stroke="#fb7185" stroke-width="2"/>
+    <text x="880" y="459" text-anchor="middle">db.Database.Migrate()</text>
+  </g>
+
+  <g stroke-width="5" fill="none">
+    <path d="M320 382v26" stroke="url(#bundleAccent)"/>
+    <path d="M880 382v26" stroke="url(#runnerAccent)"/>
+    <path d="M320 486v70c0 18 10 34 28 44l150 82" stroke="#60a5fa"/>
+    <path d="M880 486v70c0 18-10 34-28 44l-150 82" stroke="#fb7185"/>
+  </g>
+
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <rect x="450" y="610" width="300" height="86" rx="20" fill="#111827" stroke="#94a3b8" stroke-width="2"/>
+    <text x="600" y="648" text-anchor="middle" fill="#e8e6f0" font-size="22" font-weight="700">Production DB</text>
+    <text x="600" y="676" text-anchor="middle" fill="#9ca3af" font-size="16">один процесс применения за раз</text>
+  </g>
+
+  <g font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#cbd5e1">
+    <text x="130" y="528">Плюсы:</text>
+    <text x="130" y="552">- один исполняемый файл</text>
+    <text x="130" y="574">- не нужен .NET SDK на сервере</text>
+
+    <text x="690" y="528">Плюсы:</text>
+    <text x="690" y="552">- больше контроля над окружением и логикой запуска</text>
+    <text x="690" y="574">- удобно завернуть в отдельный сервис или контейнер</text>
+  </g>
+</svg>
