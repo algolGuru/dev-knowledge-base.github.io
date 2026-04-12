@@ -118,6 +118,7 @@ function buildSections() {
   });
 
   sectionsEl.innerHTML = html;
+  enhanceMarkdownTables(sectionsEl);
   enhanceCodeBlocks(sectionsEl);
   emptyEl.style.display = visibleCount === 0 ? '' : 'none';
 }
@@ -142,6 +143,19 @@ function enhanceCodeBlocks(root = document) {
     if (block.dataset.hljsDone === 'true') return;
     window.hljs.highlightElement(block);
     block.dataset.hljsDone = 'true';
+  });
+}
+
+function enhanceMarkdownTables(root = document) {
+  if (!root?.querySelectorAll) return;
+
+  root.querySelectorAll('table').forEach(table => {
+    if (table.parentElement?.classList.contains('markdown-table-wrap')) return;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'markdown-table-wrap';
+    table.parentNode.insertBefore(wrap, table);
+    wrap.appendChild(table);
   });
 }
 

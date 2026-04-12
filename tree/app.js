@@ -577,8 +577,10 @@ function openTreePopup(row, anchorEl) {
   const section = DATA.find(sec => sec.id === topicKey.split('-')[0]);
   const popup = document.getElementById('tree-popup');
   document.getElementById('tree-popup-title').textContent = row.topic;
-  document.getElementById('tree-popup-desc').innerHTML = renderMarkdown(row.desc);
-  enhanceCodeBlocks(document.getElementById('tree-popup-desc'));
+  const descEl = document.getElementById('tree-popup-desc');
+  descEl.innerHTML = renderMarkdown(row.desc);
+  enhanceMarkdownTables(descEl);
+  enhanceCodeBlocks(descEl);
 
   const linksEl = document.getElementById('tree-popup-links');
   linksEl.innerHTML = '';
@@ -629,6 +631,19 @@ function enhanceCodeBlocks(root = document) {
     if (block.dataset.hljsDone === 'true') return;
     window.hljs.highlightElement(block);
     block.dataset.hljsDone = 'true';
+  });
+}
+
+function enhanceMarkdownTables(root = document) {
+  if (!root?.querySelectorAll) return;
+
+  root.querySelectorAll('table').forEach(table => {
+    if (table.parentElement?.classList.contains('markdown-table-wrap')) return;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'markdown-table-wrap';
+    table.parentNode.insertBefore(wrap, table);
+    wrap.appendChild(table);
   });
 }
 
