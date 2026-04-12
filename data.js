@@ -1791,21 +1791,335 @@ public sealed class BankAccount : AggregateRoot<Guid>
           link("Microsoft Learn — domain model validations", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/domain-model-layer-validations"),
           link("Microsoft Learn — domain events design and implementation", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/domain-events-design-implementation")
         ]),
-            topic("Entity", `## Что это
-Entity — объект с устойчивой identity. Поля могут меняться, но объект остаётся тем же, пока не изменился \`Id\`.
+            topic("Entity", `# DDD Entity в C# .NET — описание и примеры
+
+## Введение
+
+В Domain-Driven Design **Entity** — это объект с собственной идентичностью. Его состояние может меняться со временем, но сам объект остаётся тем же, пока сохраняется его \`Id\`.
+
+Главная идея простая:
+
+> Entity определяется не набором текущих полей, а своей identity и жизненным циклом.
+
+Например, пользователь может сменить имя, email или статус, но это всё ещё тот же самый пользователь. Заказ может получить новые позиции и перейти в другой статус, но по своему \`OrderId\` это тот же заказ.
 
 ![Entity и Value Object](/assets/diagrams/ddd/entity-vs-value-object.svg)
 
-## Практика
-- Равенство entity обычно строится на \`Id\`, а не на всех полях.
-- У entity должны быть методы, которые проводят изменения через правила.
-- Если объект нужен только как значение, лучше сделать его Value Object.
+---
 
-## Как читать модель
-Entity полезна там, где важны история, жизненный цикл и ссылка на конкретный экземпляр: заказ, пользователь, счёт, договор.`, [
+## Когда нужен Entity
+
+Entity нужен, когда:
+
+* у объекта есть устойчивый жизненный цикл;
+* важно отличать один экземпляр от другого, даже если их данные частично совпадают;
+* состояние объекта меняется со временем;
+* на объект кто-то ссылается по идентификатору;
+* для объекта важны история, статус, переходы и бизнес-правила.
+
+Если объект определяется только значением и не нуждается в собственной идентичности, чаще подходит **Value Object**.
+
+---
+
+## Entity и Aggregate Root — не одно и то же
+
+Это важное различие:
+
+* каждый **Aggregate Root** — это entity;
+* но не каждая entity является aggregate root.
+
+Aggregate Root — это специальная entity, через которую внешний мир работает со всем агрегатом. Обычная внутренняя entity может жить внутри агрегата и подчиняться root.
+
+Например:
+
+* \`Order\` — aggregate root;
+* \`OrderItem\` — обычная entity внутри агрегата \`Order\`.
+
+![Граница агрегата](/assets/diagrams/ddd/aggregate-boundary.svg)
+
+---
+
+## Что обычно есть у Entity
+
+Чаще всего у entity есть:
+
+1. Идентификатор.
+2. Изменяемое состояние.
+3. Методы, которые меняют состояние по доменным правилам.
+4. Инкапсуляция через \`private set\`, методы и проверки инвариантов.
+
+Базовый класс entity обычно очень маленький. Его задача — не добавить магию, а просто задать общую модель идентичности.
+
+## Минимальный базовый класс
+
+\`\`\`csharp
+namespace Demo.Domain.Abstractions;
+
+public abstract class Entity<TId>
+    where TId : notnull
+{
+    public TId Id { get; protected set; } = default!;
+}
+\`\`\`
+
+Этого часто достаточно. Всё остальное зависит от конкретной модели.
+
+---
+
+## Как отличать Entity от Value Object
+
+### Entity
+
+* имеет identity;
+* может менять состояние;
+* равенство обычно строится по \`Id\`;
+* важен жизненный цикл конкретного экземпляра.
+
+### Value Object
+
+* собственной identity не имеет;
+* определяется значением всех существенных полей;
+* часто неизменяемый;
+* при изменении обычно создаётся новый экземпляр.
+
+Простой ориентир:
+
+* если вопрос звучит как «это тот же самый объект или уже другой?» — вероятно, это entity;
+* если вопрос звучит как «значения равны или нет?» — вероятно, это value object.
+
+---
+
+## Пример Entity внутри агрегата
+
+Ниже — типичный пример внутренней entity \`OrderItem\`, которая живёт внутри aggregate root \`Order\`.
+
+\`\`\`csharp
+using Demo.Domain.Abstractions;
+
+namespace Demo.Domain.Orders;
+
+public sealed class OrderItem : Entity<Guid>
+{
+    public ProductId ProductId { get; private set; }
+    public string ProductName { get; private set; }
+    public decimal UnitPrice { get; private set; }
+    public int Quantity { get; private set; }
+
+    public decimal TotalPrice => UnitPrice * Quantity;
+
+    private OrderItem()
+    {
+    }
+
+    internal OrderItem(ProductId productId, string productName, decimal unitPrice, int quantity)
+    {
+        if (string.IsNullOrWhiteSpace(productName))
+            throw new DomainException("Product name cannot be empty.");
+
+        if (unitPrice <= 0)
+            throw new DomainException("Unit price must be greater than zero.");
+
+        if (quantity <= 0)
+            throw new DomainException("Quantity must be greater than zero.");
+
+        Id = Guid.NewGuid();
+        ProductId = productId;
+        ProductName = productName;
+        UnitPrice = unitPrice;
+        Quantity = quantity;
+    }
+
+    internal void IncreaseQuantity(int quantity)
+    {
+        if (quantity <= 0)
+            throw new DomainException("Quantity increment must be greater than zero.");
+
+        Quantity += quantity;
+    }
+
+    internal void ChangeQuantity(int quantity)
+    {
+        if (quantity <= 0)
+            throw new DomainException("Quantity must be greater than zero.");
+
+        Quantity = quantity;
+    }
+}
+\`\`\`
+
+Почему это entity:
+
+* у \`OrderItem\` есть собственный \`Id\`;
+* количество и цена могут меняться;
+* это конкретная строка заказа, а не просто безличное значение;
+* у неё есть собственные правила изменения состояния.
+
+---
+
+## Почему entity не должна быть просто мешком данных
+
+Плохой вариант:
+
+\`\`\`csharp
+public sealed class OrderItem : Entity<Guid>
+{
+    public ProductId ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public decimal UnitPrice { get; set; }
+    public int Quantity { get; set; }
+}
+\`\`\`
+
+Здесь любой код может записать отрицательное количество, пустое имя или неконсистентное состояние.
+
+Лучше так:
+
+\`\`\`csharp
+public sealed class OrderItem : Entity<Guid>
+{
+    public ProductId ProductId { get; private set; }
+    public string ProductName { get; private set; }
+    public decimal UnitPrice { get; private set; }
+    public int Quantity { get; private set; }
+
+    internal void ChangeQuantity(int quantity)
+    {
+        if (quantity <= 0)
+            throw new DomainException("Quantity must be greater than zero.");
+
+        Quantity = quantity;
+    }
+}
+\`\`\`
+
+То есть entity должна защищать себя от недопустимых состояний, а не надеяться, что внешний код всегда будет осторожен.
+
+---
+
+## Равенство Entity
+
+Для entity обычно важно **identity equality**, а не полное совпадение всех полей.
+
+Например:
+
+* два объекта \`User\` с одинаковым \`UserId\` — это одна и та же entity;
+* даже если один экземпляр загружен раньше, а другой позже, по доменному смыслу они представляют один и тот же объект.
+
+Упрощённый пример:
+
+\`\`\`csharp
+public abstract class Entity<TId>
+    where TId : notnull
+{
+    public TId Id { get; protected set; } = default!;
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is not Entity<TId> other)
+            return false;
+
+        return EqualityComparer<TId>.Default.Equals(Id, other.Id);
+    }
+
+    public override int GetHashCode()
+        => Id.GetHashCode();
+}
+\`\`\`
+
+В реальном коде такую логику часто пишут аккуратнее, особенно если есть прокси ORM или особые требования к сравнению. Но общий смысл именно такой: для entity главным является идентификатор.
+
+---
+
+## Где должна жить логика entity
+
+Если правило относится к состоянию самой entity, оно должно жить внутри неё.
+
+Например, для \`OrderItem\` естественны такие правила:
+
+* количество не может быть меньше либо равно нулю;
+* цена не может быть отрицательной;
+* имя товара не должно быть пустым.
+
+Но если правило касается сразу нескольких объектов внутри агрегата, его часто удобнее держать в aggregate root.
+
+Пример:
+
+* \`OrderItem\` знает, как изменить своё количество;
+* \`Order\` знает, можно ли вообще менять строки заказа при текущем статусе.
+
+Это хорошее разделение ответственности:
+
+* локальные правила — в entity;
+* правила консистентности всего агрегата — в root.
+
+---
+
+## Entity в EF Core и DDD
+
+В .NET-проектах entity часто маппится на таблицу или часть таблиц через EF Core, но entity не должна проектироваться вокруг ORM.
+
+Практические ориентиры:
+
+* сначала описывай доменную модель, потом маппинг;
+* избегай публичных set-теров только ради удобства ORM;
+* приватный конструктор без параметров — нормальный компромисс для materialization;
+* не выноси доменные инварианты в конфигурацию EF Core вместо самой модели.
+
+ORM помогает хранить entity, но не определяет её смысл.
+
+---
+
+## Частые ошибки
+
+## 1. Всё подряд делать entity
+
+Если объект не имеет identity и определяется только значением, entity будет избыточной. Часто такие объекты лучше делать value object.
+
+## 2. Равенство по всем полям
+
+Для entity это обычно ошибка. Изменилось имя или статус — это не делает объект “другим”.
+
+## 3. Публичные set-теры
+
+Тогда доменная модель перестаёт защищать себя и превращается в анемичную структуру данных.
+
+## 4. Вынесение бизнес-логики наружу
+
+Плохо:
+
+\`\`\`csharp
+orderItem.Quantity = request.Quantity;
+\`\`\`
+
+Хорошо:
+
+\`\`\`csharp
+orderItem.ChangeQuantity(request.Quantity);
+\`\`\`
+
+## 5. Обход Aggregate Root
+
+Если entity находится внутри агрегата, внешний код не должен менять её напрямую или получать отдельный repository для таких изменений.
+
+---
+
+## Что запомнить
+
+\`Entity\` в DDD — это объект с идентичностью, жизненным циклом и изменяемым состоянием. Он нужен там, где важно отличать один экземпляр от другого не по набору полей, а по самой сущности объекта.
+
+Хорошая entity обычно имеет такие признаки:
+
+* собственный \`Id\`;
+* инкапсулированное состояние;
+* методы изменения вместо свободной мутации;
+* локальные бизнес-правила внутри;
+* ясное отличие от value object.
+
+Каждый aggregate root является entity, но не каждая entity является aggregate root. Это различие стоит держать очень чётко: entity отвечает за собственное состояние, а root — за консистентность всего агрегата.`, [
           link("Martin Fowler — Evans Classification", "https://martinfowler.com/bliki/EvansClassification.html"),
           link("Martin Fowler — Domain Driven Design", "https://martinfowler.com/bliki/DomainDrivenDesign.html"),
-          link("Microsoft Learn — microservice domain model", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/net-core-microservice-domain-model")
+          link("Microsoft Learn — microservice domain model", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/net-core-microservice-domain-model"),
+          link("Microsoft Learn — implement value objects", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/implement-value-objects")
         ]),
             topic("Value Object", `## Что это
 Value Object описывает значение, а не личность. Два объекта с одинаковыми значимыми полями считаются равными; обычно такой объект неизменяемый.
