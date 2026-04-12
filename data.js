@@ -823,21 +823,135 @@ Strategy выносит выбор алгоритма наружу. Command пр
   },  {
     id: "ddd", title: "DDD (Domain-Driven Design)", icon: "&#9673;", color: "violet",
     rows: [
-            topic("Aggregate", `## Что это
-Aggregate — это кластер доменных объектов с одной точкой входа через root. Снаружи его воспринимают как единицу согласованности: если меняется что-то внутри, это делается через root.
+            topic("Aggregate Root", `## Что это
+Aggregate — это кластер связанных entity и value object, а Aggregate Root — единственная допустимая точка входа в этот кластер. Снаружи система работает не с любой внутренней сущностью, а только через root: именно он держит границу консистентности, защищает инварианты и решает, какие изменения вообще допустимы.
 
 ![Граница агрегата](/assets/diagrams/ddd/aggregate-boundary.svg)
 
-## Практика
-- Загружайте и сохраняйте агрегат как целое.
-- Дочерние entity не должны менять себя в обход root.
-- Ссылки на другие агрегаты держите по \`Id\`, а не через живые объекты.
+## Что root делает в реальном коде
+- Даёт маленький, но выразительный публичный API: \`AddItem(...)\`, \`Submit()\`, \`Cancel(reason)\`.
+- Не позволяет мутировать внутренние коллекции и состояние напрямую через публичные \`set\`.
+- Управляет вложенными entity и value object так, чтобы внешнему коду не приходилось знать внутреннюю структуру агрегата.
+- Поднимает \`DomainEvent\` как следствие доменного изменения, а не по договорённости в application layer.
 
-## Зачем это нужно
-Так проще удерживать инварианты: например, лимит строк заказа, статус перехода или сумму, которая должна быть пересчитана в одном месте.`, [
+![Поток domain event](/assets/diagrams/ddd/domain-event-flow.svg)
+
+## Минимальный каркас в C# .NET
+\`\`\`csharp
+public abstract class AggregateRoot<TId> : Entity<TId>
+    where TId : notnull
+{
+    private readonly List<IDomainEvent> _domainEvents = [];
+
+    public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+
+    protected void RaiseDomainEvent(IDomainEvent domainEvent)
+        => _domainEvents.Add(domainEvent);
+
+    public void ClearDomainEvents()
+        => _domainEvents.Clear();
+}
+\`\`\`
+
+## Пример root: Order
+\`\`\`csharp
+public sealed class Order : AggregateRoot<OrderId>
+{
+    private readonly List<OrderItem> _items = [];
+
+    private Order() { }
+
+    private Order(OrderId id, CustomerId customerId)
+    {
+        if (customerId == default)
+            throw new DomainException("CustomerId is required.");
+
+        Id = id;
+        CustomerId = customerId;
+        Status = OrderStatus.Draft;
+    }
+
+    public CustomerId CustomerId { get; private set; }
+    public OrderStatus Status { get; private set; }
+    public IReadOnlyCollection<OrderItem> Items => _items.AsReadOnly();
+    public decimal TotalAmount => _items.Sum(x => x.TotalPrice);
+
+    public static Order Create(CustomerId customerId)
+    {
+        var order = new Order(OrderId.New(), customerId);
+
+        order.RaiseDomainEvent(new OrderCreatedDomainEvent(
+            order.Id,
+            order.CustomerId,
+            DateTime.UtcNow));
+
+        return order;
+    }
+
+    public void AddItem(ProductId productId, string productName, decimal unitPrice, int quantity)
+    {
+        EnsureCanBeModified();
+
+        var existingItem = _items.FirstOrDefault(x => x.ProductId == productId);
+
+        if (existingItem is null)
+            _items.Add(new OrderItem(productId, productName, unitPrice, quantity));
+        else
+            existingItem.IncreaseQuantity(quantity);
+
+        RaiseDomainEvent(new OrderItemAddedDomainEvent(
+            Id,
+            productId,
+            quantity,
+            DateTime.UtcNow));
+    }
+
+    public void Submit()
+    {
+        EnsureCanBeModified();
+
+        if (_items.Count == 0)
+            throw new DomainException("Order cannot be submitted without items.");
+
+        Status = OrderStatus.Submitted;
+
+        RaiseDomainEvent(new OrderSubmittedDomainEvent(
+            Id,
+            TotalAmount,
+            DateTime.UtcNow));
+    }
+
+    private void EnsureCanBeModified()
+    {
+        if (Status is OrderStatus.Submitted or OrderStatus.Cancelled)
+            throw new DomainException("Order cannot be modified.");
+    }
+}
+\`\`\`
+
+В таком дизайне \`OrderItem\` обычно меняется только через методы root, а его внутренние операции делают \`internal\` или полностью скрывают.
+
+## Как это работает в приложении
+Application handler загружает \`Order\` через repository, вызывает доменный метод, затем \`UnitOfWork\` сохраняет изменения. После сохранения infrastructure читает \`DomainEvents\`, публикует их in-process или пишет в outbox. Сам root не должен отправлять сообщения в брокер и не должен знать про EF Core, MediatR или HTTP.
+
+![Границы транзакций](/assets/diagrams/ddd/transaction-boundaries.svg)
+
+## Практика
+- Загружайте и сохраняйте агрегат как одно целое.
+- На другие агрегаты лучше ссылаться по \`Id\`, а не хранить живые ссылки на чужой граф объектов.
+- Обычно одна транзакция охватывает один aggregate root; координацию между несколькими агрегатами чаще делают через events и eventual consistency.
+
+## Частые ошибки
+- Анемичная модель, где состояние меняется напрямую: \`order.Status = OrderStatus.Submitted\`.
+- Репозиторий для внутренней сущности вроде \`OrderItemRepository\`, который позволяет обходить root.
+- Слишком большой агрегат, в который пытаются запихнуть все соседние правила “на всякий случай”.
+
+## Что запомнить
+Aggregate Root нужен не ради базового класса, а ради контроля над изменениями. Если у модели есть важные инварианты, вложенные сущности и бизнес-сценарии, root делает эти правила явными и защищёнными. Если объект — это просто DTO без поведения, полноценный агрегат обычно только усложнит модель.`, [
           link("Martin Fowler — DDD Aggregate", "https://martinfowler.com/bliki/DDD_Aggregate.html"),
           link("Microsoft Learn — microservice domain model", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/net-core-microservice-domain-model"),
-          link("Microsoft Learn — domain model validations", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/domain-model-layer-validations")
+          link("Microsoft Learn — domain model validations", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/domain-model-layer-validations"),
+          link("Microsoft Learn — domain events design and implementation", "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/domain-events-design-implementation")
         ]),
             topic("Entity", `## Что это
 Entity — объект с устойчивой identity. Поля могут меняться, но объект остаётся тем же, пока не изменился \`Id\`.
