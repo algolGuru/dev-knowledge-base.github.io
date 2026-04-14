@@ -4724,11 +4724,16 @@ Middleware в ASP.NET Core — это компоненты HTTP pipeline. Каж
 ## Как работает pipeline
 
 \`\`\`text
-Request -> Middleware 1 -> Middleware 2 -> Middleware 3 -> Endpoint
-                               ^               ^
-                               |               |
-                        response идет обратно
+Middleware 1: before next()
+  Middleware 2: before next()
+    Middleware 3: before next()
+      Endpoint
+    Middleware 3: after next()
+  Middleware 2: after next()
+Middleware 1: after next()
 \`\`\`
+
+Так видно, что middleware не просто стоят в цепочке, а оборачивают следующий шаг. Запрос идет сверху вниз, а ответ возвращается снизу вверх в обратном порядке.
 
 Порядок регистрации критически важен. Каждый вызов \`app.Use(...)\` вставляет новый шаг в конвейер, поэтому перестановка middleware часто меняет поведение приложения и может привести к багам безопасности.
 
