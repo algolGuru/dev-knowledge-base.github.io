@@ -5670,83 +5670,368 @@ app.MapControllers();
           link("Well-known EventCounters in .NET", "https://learn.microsoft.com/en-us/dotnet/core/diagnostics/available-counters"),
           link("dotnet-counters diagnostic tool", "https://learn.microsoft.com/en-us/dotnet/core/diagnostics/dotnet-counters")
         ]),
-            topic("Formatters для MVC", md(
-              '![Content negotiation](/assets/diagrams/webapi/content-negotiation.svg)',
-              '',
-              '## Идея',
-              'Formatter в ASP.NET Core MVC - это слой сериализации между HTTP body и .NET-объектом. Внутри pipeline контроллера он работает автоматически: input formatter читает тело запроса и превращает его в модель, а output formatter берёт результат action и пишет HTTP-ответ.',
-              '',
-              '```csharp',
-              '[HttpPost]',
-              'public IActionResult Create([FromBody] CreateUserRequest request)',
-              '{',
-              '    return Ok(new { Message = "User created" });',
-              '}',
-              '```',
-              '',
-              '## Что происходит под капотом',
-              '1. Клиент отправляет тело запроса, например JSON, с `Content-Type: application/json`.',
-              '2. Input formatter смотрит на `Content-Type`, читает body и десериализует его в `CreateUserRequest`.',
-              '3. Контроллер работает уже с готовым объектом, а не с сырым текстом.',
-              '4. `Ok(...)` возвращает `ObjectResult`, и output formatter сериализует результат в подходящий формат ответа.',
-              '5. MVC выставляет соответствующий `Content-Type`.',
-              '',
-              '## Какие бывают',
-              '- **Input formatters** отвечают за чтение тела запроса. По умолчанию это JSON через `System.Text.Json`, но можно подключить XML, plain text, protobuf или свой формат.',
-              '- **Output formatters** отвечают за формирование ответа. Они сериализуют объект в JSON, XML, `text/plain` или другой media type.',
-              '',
-              '## Как выбирается formatter',
-              '- для входа выбор идёт по `Content-Type` запроса;',
-              '- для выхода MVC использует `Accept` и механизм content negotiation;',
-              '- если клиент просит `application/xml`, MVC ищет output formatter, который умеет XML;',
-              '- если подходящего formatter нет, приложение может вернуть `406 Not Acceptable`.',
-              '',
-              '## Связь с model binding',
-              'Model binding собирает данные из route, query, headers и form. Formatters работают именно с body. Поэтому `[FromQuery]` - это model binding, а `[FromBody]` - formatter.',
-              '',
-              '## Настройка',
-              '```csharp',
-              'builder.Services',
-              '    .AddControllers(options =>',
-              '    {',
-              '        options.InputFormatters.Add(new MyCustomFormatter());',
-              '    })',
-              '    .AddXmlSerializerFormatters();',
-              '```',
-              '',
-              'Для собственных форматов обычно наследуются от `InputFormatter`/`OutputFormatter` или `TextInputFormatter`/`TextOutputFormatter`, а затем регистрируют их в MVC options.',
-              '',
-              '## Когда это реально нужно',
-              '- поддержать XML, protobuf или legacy-формат API;',
-              '- сделать кастомную сериализацию с жёстким контрактом;',
-              '- вынести преобразование HTTP body из контроллера в расширяемый слой.',
-              '',
-              'Для обычного REST API чаще всего достаточно стандартного JSON formatter и настройки `JsonSerializerOptions`.',
-              '',
-              '## Что запомнить',
-              '- formatters в MVC отвечают за преобразование `body <-> object`;',
-              '- input и output formatters - это разные расширения pipeline;',
-              '- они участвуют в content negotiation;',
-              '- порядок formatter-ов важен: неправильная настройка может сломать выбор формата;',
-              '- это механизм MVC-контроллеров; в Minimal API используются `Results` и другой слой сериализации.'
-            ), [
+            topic("Formatters для MVC", `[HttpPost]
+public IActionResult Create([FromBody] CreateUserRequest request)
+{
+    return Ok(new { Message = "User created" });
+}
+Что происходит под капотом:
+Клиент отправляет JSON
+Input Formatter:
+читает Content-Type: application/json
+десериализует JSON → CreateUserRequest
+Контроллер работает с объектом
+Output Formatter:
+сериализует результат → JSON
+выставляет Content-Type
+🔄 Типы Formatters
+1. Input Formatters (входящие)
+
+Отвечают за чтение тела запроса.
+
+Примеры:
+
+JSON (по умолчанию через System.Text.Json)
+XML (если подключен)
+custom (например protobuf)
+2. Output Formatters (исходящие)
+
+Отвечают за формирование ответа.
+
+Примеры:
+
+JSON
+XML
+plain text
+custom форматы
+⚙️ Как выбирается Formatter
+
+Выбор происходит на основе:
+
+📥 Для Input:
+
+Content-Type запроса
+
+application/json → JSON formatter
+application/xml → XML formatter
+📤 Для Output:
+Accept header (content negotiation)
+Accept: application/xml
+
+→ MVC попробует вернуть XML
+
+🧠 Content Negotiation (очень важно)
+
+Это механизм выбора формата ответа.
+
+GET /users
+Accept: application/json
+
+или
+
+Accept: application/xml
+
+MVC:
+
+смотрит Accept
+ищет подходящий Output Formatter
+если не найден — может вернуть 406 Not Acceptable
+⚙️ Настройка Formatters
+
+В Program.cs:
+
+builder.Services
+    .AddControllers(options =>
+    {
+        // удалить formatter
+        options.OutputFormatters.RemoveType<SystemTextJsonOutputFormatter>();
+
+        // добавить кастомный
+        options.InputFormatters.Add(new MyCustomFormatter());
+    });
+➕ Добавление XML
+builder.Services
+    .AddControllers()
+    .AddXmlSerializerFormatters();
+🧪 Пример кастомного Formatter
+Input Formatter
+public class CustomTextInputFormatter : TextInputFormatter
+{
+    public CustomTextInputFormatter()
+    {
+        SupportedMediaTypes.Add("text/plain");
+        SupportedEncodings.Add(Encoding.UTF8);
+    }
+
+    protected override bool CanReadType(Type type)
+    {
+        return type == typeof(string);
+    }
+
+    public override async Task<InputFormatterResult> ReadRequestBodyAsync(
+        InputFormatterContext context, Encoding encoding)
+    {
+        using var reader = new StreamReader(context.HttpContext.Request.Body, encoding);
+        var content = await reader.ReadToEndAsync();
+        return await InputFormatterResult.SuccessAsync(content);
+    }
+}
+🧪 Output Formatter
+public class CustomTextOutputFormatter : TextOutputFormatter
+{
+    public CustomTextOutputFormatter()
+    {
+        SupportedMediaTypes.Add("text/plain");
+        SupportedEncodings.Add(Encoding.UTF8);
+    }
+
+    protected override bool CanWriteType(Type type)
+    {
+        return true;
+    }
+
+    public override async Task WriteResponseBodyAsync(
+        OutputFormatterWriteContext context, Encoding encoding)
+    {
+        var response = context.HttpContext.Response;
+        await response.WriteAsync(context.Object?.ToString());
+    }
+}
+📌 Когда это реально нужно
+
+Использовать formatters имеет смысл, если:
+
+✅ Нужно:
+поддержка XML / protobuf / custom формата
+нестандартный формат API (например legacy)
+строгий контроль сериализации
+high-performance кастомная сериализация
+❌ Не нужно:
+обычные REST API → JSON достаточно
+можно обойтись JsonSerializerOptions
+⚠️ Важные нюансы
+Formatters работают только в MVC контроллерах
+В Minimal API используется другой механизм (Results + serializers)
+Порядок formatters имеет значение
+Можно сломать content negotiation неправильной настройкой
+🧩 Как это связано с Model Binding
+Model Binding → собирает данные из route, query, headers
+Formatters → работают только с Body
+[FromQuery]  // model binding
+[FromBody]   // formatter
+🧠 Итог
+
+Formatters = слой сериализации в MVC
+
+Они:
+
+читают тело запроса → объект
+пишут объект → HTTP ответ
+участвуют в content negotiation
+расширяются и кастомизируются`, [
           link("Formatting in ASP.NET Core Web API", "https://learn.microsoft.com/en-us/aspnet/core/web-api/advanced/formatting?view=aspnetcore-9.0"),
           link("ObjectResult class", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.objectresult?view=aspnetcore-9.0"),
           link("FormatFilterAttribute", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.formatfilterattribute?view=aspnetcore-9.0"),
           link("Model binding in ASP.NET Core", "https://learn.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-9.0")
         ]),
-            topic("Форсирование формата ObjectResult", `Если negotiation слишком открытый, его можно сузить. Для endpoints, которые обязаны отдавать конкретный media type, используют ObjectResult.ContentTypes, FormatFilterAttribute или вовсе возвращают конкретный result-тип вместо выбора между несколькими форматерами.
+            topic("Форсирование формата ObjectResult", `1. Что такое ObjectResult и Formatters
 
-## Практика
-Это полезно, когда контракт важнее гибкости: фиксированный экспорт, версионированный media type или UI, который зависит от стабильной формы ответа. Если клиентов немного и формат известен заранее, явное решение читается лучше, чем скрытая магия.
+Когда ты пишешь:
 
-## Что запомнить
-- forcing format — это решение про контракт;
-- ContentTypes сужает выбор;
-- явный result обычно понятнее, чем неявная догадка MVC.`, [
+return Ok(new User { Name = "John" });
+
+под капотом происходит:
+
+Возвращается OkObjectResult
+Он наследуется от ObjectResult
+ASP.NET Core ищет Output Formatter, чтобы сериализовать объект
+
+👉 Форматтеры — это классы, которые:
+
+берут object
+превращают его в HTTP response body
+🔧 Стандартные форматтеры
+
+Добавляются через:
+
+builder.Services.AddControllers();
+
+По умолчанию:
+
+SystemTextJsonOutputFormatter → JSON
+(опционально) XmlSerializerOutputFormatter → XML
+⚙️ 2. Как выбирается формат ответа
+
+ASP.NET Core использует Content Negotiation:
+
+Учитывается:
+
+Заголовок Accept
+
+Accept: application/json
+Accept: application/xml
+Поддерживаемые форматтеры
+Настройки MVC
+📌 Пример
+GET /users
+Accept: application/xml
+
+Если XML formatter подключён → вернётся XML
+Если нет → fallback на JSON
+
+🚨 3. Проблема
+
+Иногда нужно:
+
+❗ "Этот метод ВСЕГДА должен возвращать JSON (или XML), независимо от Accept"
+
+✅ 4. Форсирование формата через ObjectResult
+
+Ты можешь явно указать формат:
+
+return new ObjectResult(user)
+{
+    ContentTypes = { "application/json" }
+};
+
+👉 Это говорит:
+
+“используй только JSON formatter”
+
+🔥 Более явный вариант
+var result = new ObjectResult(user);
+result.ContentTypes.Add("application/json");
+
+return result;
+🎯 5. Через Produces
+
+Более декларативный способ:
+
+[Produces("application/json")]
+[HttpGet]
+public IActionResult Get()
+{
+    return Ok(new User { Name = "John" });
+}
+
+👉 Это:
+
+ограничивает формат
+влияет на Swagger
+участвует в content negotiation
+❗ Но важно
+
+[Produces] не всегда 100% форсирует, если есть конфликт с Accept
+
+💣 6. Жёсткое форсирование (игнор Accept)
+
+Если нужно полностью игнорировать Accept, есть варианты:
+
+✅ Вариант 1: Убрать другие форматтеры
+builder.Services.AddControllers(options =>
+{
+    options.OutputFormatters.Clear();
+    options.OutputFormatters.Add(new SystemTextJsonOutputFormatter(...));
+});
+
+👉 Глобально только JSON
+
+✅ Вариант 2: Кастомный ObjectResult
+public class JsonOnlyResult : ObjectResult
+{
+    public JsonOnlyResult(object value) : base(value)
+    {
+        ContentTypes.Add("application/json");
+    }
+}
+
+Использование:
+
+return new JsonOnlyResult(user);
+✅ Вариант 3: Явный JsonResult
+return new JsonResult(user);
+
+👉 Это уже:
+
+минует negotiation
+всегда JSON
+⚡ 7. Через FormatFilter (query-based)
+
+Можно менять формат через query:
+
+[FormatFilter]
+[HttpGet("{id}.{format?}")]
+public IActionResult Get(int id)
+{
+    return Ok(user);
+}
+
+Запросы:
+
+/users/1.json
+/users/1.xml
+🧠 8. Как это работает внутри
+
+Pipeline:
+
+Controller → IActionResult → ObjectResult
+        ↓
+Content Negotiation
+        ↓
+Output Formatter выбран
+        ↓
+WriteResponseBodyAsync()
+⚠️ 9. Важные нюансы
+❗ 1. ContentTypes vs Accept
+ContentTypes → ограничивает результат
+Accept → пожелание клиента
+❗ 2. Если формат не найден
+
+→ HTTP 406 Not Acceptable
+
+❗ 3. JsonResult vs ObjectResult
+Тип	Поведение
+ObjectResult	negotiation
+JsonResult	всегда JSON
+🧪 10. Реальный пример
+[HttpGet("strict-json")]
+public IActionResult GetStrict()
+{
+    var user = new User { Name = "John" };
+
+    return new ObjectResult(user)
+    {
+        ContentTypes = { "application/json" }
+    };
+}
+💡 Альтернатива
+return new JsonResult(user);
+🧩 11. Когда что использовать
+Используй ObjectResult + ContentTypes, если:
+нужен контроль
+но оставить negotiation
+Используй JsonResult, если:
+нужен жёсткий JSON
+игнор Accept
+Используй [Produces], если:
+нужна декларация API
+Swagger/OpenAPI
+🧾 Итог
+
+Formatters + ObjectResult = механизм сериализации ответа
+
+Форсирование формата можно сделать:
+
+Способ	Жёсткость
+[Produces]	мягкое
+ContentTypes	среднее
+JsonResult	жёсткое
+кастомный Result	полный контроль`, [
           link("ObjectResult.ContentTypes", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.objectresult.contenttypes?view=aspnetcore-10.0"),
           link("FormatFilterAttribute", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.formatfilterattribute?view=aspnetcore-9.0"),
-          link("Action return types in ASP.NET Core Web API", "https://learn.microsoft.com/en-us/aspnet/core/web-api/action-return-types?view=aspnetcore-10.0")
+          link("Action return types in ASP.NET Core Web API", "https://learn.microsoft.com/en-us/aspnet/core/web-api/action-return-types?view=aspnetcore-10.0"),
+          link("ProducesAttribute", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.producesattribute?view=aspnetcore-9.0"),
+          link("JsonResult", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.jsonresult?view=aspnetcore-9.0")
         ]),
             topic("HealthChecks", `![Health checks](/assets/diagrams/webapi/healthchecks.svg)
 
