@@ -7236,14 +7236,14 @@ OWASP Top 10 - это не полный каталог всех уязвимос
 - **A10 Mishandling of Exceptional Conditions** - неправильная обработка нештатных ситуаций: fail-open сценарии, утечки через ошибки, некорректная работа при сбоях, пропущенных параметрах и исключениях.
 
 ## Как список изменился относительно 2021
-- **SSRF** больше не отдельный пункт: в `2025` его включили в **A01 Broken Access Control**.
-- **Security Misconfiguration** поднялся с `A05:2021` на `A02:2025`, потому что доля проблем, завязанных на конфигурацию, выросла.
+- **SSRF** больше не отдельный пункт: в 2025 его включили в **A01 Broken Access Control**.
+- **Security Misconfiguration** поднялся с A05:2021 на A02:2025, потому что доля проблем, завязанных на конфигурацию, выросла.
 - **Vulnerable and Outdated Components** переработали в **A03 Software Supply Chain Failures**: теперь речь не только о старых версиях библиотек, но и обо всей цепочке сборки и поставки ПО.
-- **Cryptographic Failures**, **Injection** и **Insecure Design** остались в списке, но сместились ниже: `A02 -> A04`, `A03 -> A05`, `A04 -> A06`.
+- **Cryptographic Failures**, **Injection** и **Insecure Design** остались в списке, но сместились ниже: A02 -> A04, A03 -> A05, A04 -> A06.
 - **Identification and Authentication Failures** переименовали в **Authentication Failures** без смены сути категории.
-- **Software and Data Integrity Failures** сохранил идею, но в `2025` официальное название звучит как **Software or Data Integrity Failures**.
+- **Software and Data Integrity Failures** сохранил идею, но в 2025 официальное название звучит как **Software or Data Integrity Failures**.
 - **Security Logging and Monitoring Failures** переименовали в **Security Logging and Alerting Failures**, чтобы подчеркнуть важность не только логов, но и своевременной реакции.
-- В `2025` появился новый пункт **A10 Mishandling of Exceptional Conditions** про ошибки обработки исключений, fail-open и небезопасное поведение системы в нештатных условиях.
+- В 2025 появился новый пункт **A10 Mishandling of Exceptional Conditions** про ошибки обработки исключений, fail-open и небезопасное поведение системы в нештатных условиях.
 
 ## Как применять к карточкам проекта
 - проходить по каждому пользовательскому сценарию, а не только по endpoint'ам;
@@ -7741,7 +7741,6 @@ async function initSync() {
   setSyncState('synced');
   setTimeout(() => setSyncState('idle'), 2000);
 }
-
 
 
 
