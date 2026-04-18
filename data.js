@@ -6369,34 +6369,671 @@ app.MapControllers();
           link("Developing ASP.NET Core MVC apps", "https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/develop-asp-net-core-mvc-apps"),
           link("Dependency injection basics quickstart", "https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection-basics")
         ]),
-            topic("FromService, FromRoute и др.", `![Binding sources](/assets/diagrams/webapi/model-binding.svg)
+            topic("FromServices, FromRoute и др.", `![Binding sources](/assets/diagrams/webapi/model-binding.svg)
 
-## Идея
-Атрибуты FromRoute, FromQuery, FromHeader, FromBody, FromForm и FromServices убирают двусмысленность. Вместо гадания, откуда брать значение, endpoint явно говорит, какой источник нужен для каждого параметра.
+## Общая идея Model Binding
 
-## Практика
-Для простых типизированных данных используйте route/query, для сложного тела запроса — body, для инфраструктурных зависимостей — services. Это особенно полезно, когда параметр может быть собран сразу из нескольких источников, а вы хотите сделать контракт читаемым.
+По умолчанию ASP.NET Core сам пытается угадать источник данных:
 
-## Что запомнить
-- явный источник уменьшает магию;
-- DI-зависимость — это не часть payload;
-- FromServices хорошо читается в контроллерах и минимальных API.`, [
-          link("FromServicesAttribute", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.fromservicesattribute?view=aspnetcore-9.0"),
+- Route
+- Query string
+- Body
+- Headers
+- Form
+- Services (DI)
+
+Но это не всегда очевидно, поэтому используются явные атрибуты.
+
+Разберём каждый атрибут подробно.
+
+## 1. [FromRoute]
+
+Берёт значение из маршрута (URL path).
+
+### Пример
+
+\`\`\`csharp
+[HttpGet("users/{id}")]
+public IActionResult GetUser([FromRoute] int id)
+{
+    return Ok($"User id = {id}");
+}
+\`\`\`
+
+Запрос:
+
+\`\`\`http
+GET /users/42
+\`\`\`
+
+Результат:
+
+\`\`\`text
+id = 42
+\`\`\`
+
+### Когда использовать
+
+- Когда значение явно часть URL
+- REST-style endpoints (/orders/{id})
+
+## 2. [FromQuery]
+
+Берёт данные из query string
+
+### Пример
+
+\`\`\`csharp
+[HttpGet("users")]
+public IActionResult GetUsers([FromQuery] int page, [FromQuery] int pageSize)
+{
+    return Ok(new { page, pageSize });
+}
+\`\`\`
+
+Запрос:
+
+\`\`\`http
+GET /users?page=2&pageSize=10
+\`\`\`
+
+### Особенности
+
+Поддерживает complex types:
+
+\`\`\`csharp
+public class Filter
+{
+    public string Name { get; set; }
+    public int Age { get; set; }
+}
+
+[HttpGet]
+public IActionResult Search([FromQuery] Filter filter)
+\`\`\`
+
+\`\`\`http
+GET /search?name=John&age=30
+\`\`\`
+
+## 3. [FromHeader]
+
+Берёт данные из HTTP headers
+
+### Пример
+
+\`\`\`csharp
+[HttpGet]
+public IActionResult Get([FromHeader(Name = "X-Request-Id")] string requestId)
+{
+    return Ok(requestId);
+}
+\`\`\`
+
+Заголовок:
+
+\`\`\`http
+X-Request-Id: abc-123
+\`\`\`
+
+### Когда использовать
+
+- Correlation ID
+- Versioning
+- Custom headers
+
+## 4. [FromBody]
+
+Берёт данные из тела HTTP-запроса
+
+### Пример
+
+\`\`\`csharp
+public class CreateUserRequest
+{
+    public string Name { get; set; }
+}
+
+[HttpPost]
+public IActionResult Create([FromBody] CreateUserRequest request)
+{
+    return Ok(request.Name);
+}
+\`\`\`
+
+Запрос:
+
+\`\`\`http
+POST /users
+Content-Type: application/json
+
+{
+  "name": "John"
+}
+\`\`\`
+
+### Важно
+
+- Использует input formatters (обычно JSON)
+- Только один [FromBody] параметр на метод
+
+Причина: тело запроса можно прочитать только один раз
+
+## 5. [FromForm]
+
+Берёт данные из form-data / x-www-form-urlencoded
+
+### Пример
+
+\`\`\`csharp
+[HttpPost]
+public IActionResult Upload([FromForm] string name, [FromForm] IFormFile file)
+{
+    return Ok(name);
+}
+\`\`\`
+
+Используется для:
+
+- Upload файлов
+- HTML форм
+
+## 6. [FromServices]
+
+Берёт данные из Dependency Injection контейнера
+
+### Пример
+
+\`\`\`csharp
+[HttpGet]
+public IActionResult Get([FromServices] ILogger<MyController> logger)
+{
+    logger.LogInformation("Called");
+    return Ok();
+}
+\`\`\`
+
+### Когда использовать
+
+Редко
+Обычно лучше через конструктор
+
+Но полезно:
+
+- в Minimal API
+- для единичных зависимостей
+
+## Сравнение
+
+| Атрибут | Источник данных | Когда использовать |
+| --- | --- | --- |
+| FromRoute | URL path | REST endpoints |
+| FromQuery | Query string | фильтры, пагинация |
+| FromHeader | Headers | мета-информация |
+| FromBody | Body (JSON/XML) | POST/PUT |
+| FromForm | Form-data | формы / файлы |
+| FromServices | DI контейнер | зависимости |
+
+## Важные нюансы
+
+### 1. Приоритет биндинга
+
+Без атрибутов:
+
+- Route
+- Query
+- Body (для complex типов)
+
+Может привести к неожиданностям
+
+### 2. [ApiController] меняет поведение
+
+Если используется:
+
+\`\`\`csharp
+[ApiController]
+\`\`\`
+
+Тогда:
+
+- Complex types → автоматически [FromBody]
+- Simple types → [FromRoute] / [FromQuery]
+
+### 3. Null и validation
+
+С [ApiController]:
+
+- Автоматическая валидация ModelState
+- 400 response при ошибке
+
+### 4. Комбинирование
+
+Можно смешивать:
+
+\`\`\`csharp
+public IActionResult Example(
+    [FromRoute] int id,
+    [FromQuery] string filter,
+    [FromHeader(Name = "X-Trace")] string traceId)
+\`\`\`
+
+## Практический пример
+
+\`\`\`csharp
+[HttpPost("users/{id}")]
+public IActionResult UpdateUser(
+    [FromRoute] int id,
+    [FromQuery] bool notify,
+    [FromHeader(Name = "X-Request-Id")] string requestId,
+    [FromBody] UpdateUserRequest request,
+    [FromServices] IUserService service)
+{
+    service.Update(id, request);
+
+    return Ok(new { id, notify, requestId });
+}
+\`\`\`
+
+## Когда обязательно указывать явно
+
+Используй атрибуты, если:
+
+- Есть неоднозначность
+- Публичный API
+- Важна читаемость
+- Разные источники данных в одном методе
+
+## Вывод
+
+Эти атрибуты:
+
+- делают код предсказуемым
+- устраняют магию model binding
+- повышают читаемость API
+
+В production-коде почти всегда лучше указывать явно, особенно для публичных API.`, [
+          link("Model binding in ASP.NET Core", "https://learn.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-9.0"),
+          link("Parameter binding in minimal APIs", "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/parameter-binding?view=aspnetcore-9.0"),
+          link("ApiControllerAttribute", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.apicontrollerattribute?view=aspnetcore-9.0"),
           link("FromRouteAttribute", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.fromrouteattribute?view=aspnetcore-9.0"),
-          link("FromQueryAttribute", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.fromqueryattribute?view=aspnetcore-9.0")
+          link("FromQueryAttribute", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.fromqueryattribute?view=aspnetcore-9.0"),
+          link("FromHeaderAttribute", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.fromheaderattribute?view=aspnetcore-9.0"),
+          link("FromBodyAttribute", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.frombodyattribute?view=aspnetcore-9.0"),
+          link("FromFormAttribute", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.fromformattribute?view=aspnetcore-9.0"),
+          link("FromServicesAttribute", "https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.fromservicesattribute?view=aspnetcore-9.0"),
+          link("File uploads in ASP.NET Core", "https://learn.microsoft.com/en-us/aspnet/core/mvc/models/file-uploads?view=aspnetcore-9.0"),
+          link("Dependency injection in ASP.NET Core", "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/dependency-injection?view=aspnetcore-9.0"),
+          link("Formatting in ASP.NET Core Web API", "https://learn.microsoft.com/en-us/aspnet/core/web-api/advanced/formatting?view=aspnetcore-9.0")
         ]),
             topic("ModelBinding", `![Binding flow](/assets/diagrams/webapi/model-binding.svg)
 
-## Идея
-Model binding — это конвейер, который превращает входящие строки запроса в параметры action'ов и сложные типы. Он проходит по источникам данных, пробует сконструировать объект, а затем передаёт результат в валидацию.
+## Model Binding в ASP.NET Core
 
-## Практика
-Когда binding становится неожиданным, причина обычно в неявном источнике или в несоответствии имён. Поэтому полезно держать DTO простыми, имена — стабильными, а сложные преобразования делать в отдельном слое, а не в контроллере.
+Model Binding — это механизм, который:
 
-## Что запомнить
-- binding — это не бизнес-логика;
-- имена и типы важны не меньше маршрутов;
-- ошибки binding'а лучше ловить на границе API, а не глубже.`, [
+- берёт данные из HTTP-запроса
+- преобразует их
+- передаёт в параметры метода контроллера
+
+Без него тебе пришлось бы вручную парсить Request.Query, Request.Body и т.д.
+
+## Как это работает (базово)
+
+\`\`\`csharp
+public IActionResult GetUser(int id)
+{
+    return Content($"User ID: {id}");
+}
+\`\`\`
+
+Запрос:
+
+\`\`\`http
+GET /User/GetUser?id=5
+\`\`\`
+
+id автоматически станет 5
+
+## Пример с моделью
+
+\`\`\`csharp
+public class User
+{
+    public string Name { get; set; }
+    public int Age { get; set; }
+}
+
+[HttpPost]
+public IActionResult Create(User user)
+{
+    return Ok(user);
+}
+\`\`\`
+
+JSON:
+
+\`\`\`json
+{
+  "name": "Alex",
+  "age": 25
+}
+\`\`\`
+
+user заполняется автоматически
+
+## Источники данных (Binding Sources)
+
+Model Binding использует:
+
+- Query (?id=1)
+- Route (/users/1)
+- Body (JSON/XML)
+- Form-data
+- Headers
+
+## Управление через атрибуты
+
+\`\`\`csharp
+[FromQuery] int id
+[FromRoute] int id
+[FromBody] User user
+[FromHeader] string token
+\`\`\`
+
+## Валидация модели
+
+\`\`\`csharp
+public class User
+{
+    [Required]
+    public string Name { get; set; }
+
+    [Range(0, 120)]
+    public int Age { get; set; }
+}
+if (!ModelState.IsValid)
+{
+    return BadRequest(ModelState);
+}
+\`\`\`
+
+## Влияние [ApiController]
+
+Атрибут ApiControllerAttribute меняет поведение Model Binding.
+
+### 1. Автоопределение источников
+
+\`\`\`csharp
+public IActionResult Create(User user)
+\`\`\`
+
+- сложные типы → из body (без [FromBody])
+- простые → из route/query
+
+### 2. Автоматическая валидация
+
+\`\`\`csharp
+public IActionResult Create(User user)
+{
+    return Ok(user);
+}
+\`\`\`
+
+- если модель невалидна → 400 автоматически
+- action не вызывается
+
+### 3. Стандарт ошибок (ProblemDetails)
+
+\`\`\`json
+{
+  "title": "One or more validation errors occurred.",
+  "status": 400,
+  "errors": {
+    "Name": ["The Name field is required."]
+  }
+}
+\`\`\`
+
+### 4. Строгое поведение
+
+- нет значения → ошибка
+- неверный тип → ошибка
+- нет body → ошибка
+
+### 5. Только один [FromBody]
+
+\`\`\`csharp
+public IActionResult Test(User user, AnotherModel model)
+\`\`\`
+
+ошибка — body читается один раз
+
+### 6. Route binding без атрибутов
+
+\`\`\`csharp
+[HttpGet("{id}")]
+public IActionResult Get(int id)
+\`\`\`
+
+[FromRoute] не нужен
+
+## Отключение поведения
+
+\`\`\`csharp
+services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.SuppressModelStateInvalidFilter = true;
+});
+\`\`\`
+
+## Pipeline Model Binding
+
+Теперь самое важное — что происходит внутри.
+
+## Полный pipeline
+
+\`\`\`text
+HTTP Request
+     ↓
+Routing (Endpoint)
+     ↓
+Value Providers
+     ↓
+Model Binder Selection
+     ↓
+Model Binding
+     ↓
+Input Formatters (Body)
+     ↓
+Validation
+     ↓
+[ApiController]? → авто 400
+     ↓
+Controller Action
+\`\`\`
+
+## 1. Routing
+
+Endpoint Routing определяет:
+
+- какой controller
+- какой action
+- какие параметры
+
+## 2. Value Providers
+
+Собирают данные из:
+
+- Query
+- Route
+- Form
+- Headers
+
+## 3. Выбор Model Binder
+
+Фреймворк выбирает биндер:
+
+- SimpleTypeModelBinder → int, string
+- ComplexTypeModelBinder → объекты
+- BodyModelBinder → JSON
+- кастомный биндер
+
+## 4. Model Binding
+
+Происходит:
+
+- поиск значений
+- конвертация
+- создание объекта
+- заполнение свойств
+
+Ошибки → ModelState
+
+## 5. Input Formatters
+
+Если [FromBody]:
+
+JSON → объект (через System.Text.Json)
+
+## 6. Валидация
+
+- DataAnnotations
+- кастомные валидаторы
+
+## 7. [ApiController]
+
+если ошибка → pipeline обрывается (400)
+
+## 8. Вызов Action
+
+Контроллер получает готовые данные
+
+## Кастомный Model Binder
+
+Используется, когда стандартного поведения недостаточно.
+
+### Пример: "10-20" → объект
+
+Запрос:
+
+\`\`\`http
+GET /api/test?range=10-20
+\`\`\`
+
+Модель:
+
+\`\`\`csharp
+public class Range
+{
+    public int From { get; set; }
+    public int To { get; set; }
+}
+\`\`\`
+
+## Реализация биндинга
+
+\`\`\`csharp
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+
+public class RangeModelBinder : IModelBinder
+{
+    public Task BindModelAsync(ModelBindingContext context)
+    {
+        var value = context.ValueProvider
+            .GetValue(context.ModelName)
+            .FirstValue;
+
+        if (string.IsNullOrEmpty(value))
+            return Task.CompletedTask;
+
+        var parts = value.Split('-');
+
+        if (parts.Length != 2 ||
+            !int.TryParse(parts[0], out var from) ||
+            !int.TryParse(parts[1], out var to))
+        {
+            context.ModelState.AddModelError(
+                context.ModelName,
+                "Invalid range format"
+            );
+            return Task.CompletedTask;
+        }
+
+        var result = new Range
+        {
+            From = from,
+            To = to
+        };
+
+        context.Result = ModelBindingResult.Success(result);
+        return Task.CompletedTask;
+    }
+}
+\`\`\`
+
+## Использование
+
+\`\`\`csharp
+public IActionResult Get(
+    [ModelBinder(BinderType = typeof(RangeModelBinder))] Range range)
+{
+    return Ok(range);
+}
+\`\`\`
+
+## Результат
+
+\`\`\`http
+GET /api/test?range=10-20
+\`\`\`
+
+\`\`\`json
+{
+  "from": 10,
+  "to": 20
+}
+\`\`\`
+
+## Важные нюансы и edge-cases
+
+### Body читается один раз
+
+нельзя несколько [FromBody]
+
+### Nullable vs Required
+
+\`\`\`csharp
+int Age      // ошибка если нет значения
+int? Age     // будет null
+\`\`\`
+
+### Binding vs Validation ошибки
+
+Binding → не смогли преобразовать ("abc" → int)
+Validation → нарушено правило ([Range])
+
+### Имена имеют значение
+
+должны совпадать с параметрами
+
+## Итог
+
+Model Binding в ASP.NET Core — это:
+
+- автоматическое преобразование HTTP → C#
+- поддержка разных источников данных
+- интеграция с валидацией
+- расширяемость через кастомные биндеры
+
+[ApiController] делает его:
+
+- более строгим
+- более автоматическим
+- удобным для API
+
+Pipeline даёт понимание:
+
+- где именно можно влиять на поведение (биндеры, форматтеры, валидация)`, [
           link("Model binding in ASP.NET Core", "https://learn.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-9.0"),
           link("Web API overview", "https://learn.microsoft.com/en-us/aspnet/core/web-api/?view=aspnetcore-9.0"),
           link("Parameter binding in minimal APIs", "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/parameter-binding?view=aspnetcore-9.0")
